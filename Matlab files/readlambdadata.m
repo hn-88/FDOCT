@@ -3,6 +3,8 @@ function outv=readlambdadata(filename)
 % Ocean Optics Spectra Suite as part of its
 % ProcSpec file. (unzip ProcSpec file to get the xml file)
 % returns lambdadata as a vector.
+%
+%    $ Hari Nandakumar
 %    $Date: September 17, 2016 $
 
 M=textread(filename, '%s', 'delimiter', '\n', 'whitespace', '');
