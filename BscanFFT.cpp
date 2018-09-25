@@ -323,7 +323,7 @@ int main(int argc,char *argv[])
         ret = GetQHYCCDId(i,id);
         if(ret == QHYCCD_SUCCESS)
         {
-            printf("connected to the first camera from the list,id is %s\n",id);
+            //printf("connected to the first camera from the list,id is %s\n",id);
             found = 1;
             break;
         }
@@ -383,7 +383,7 @@ int main(int argc,char *argv[])
         ret = SetQHYCCDResolution(camhandle,0,0, w, h); //handle, xpos,ypos,xwidth,ywidth
         if(ret == QHYCCD_SUCCESS)
         {
-            printf("SetQHYCCDResolution success - width = %d !\n", w); 
+            printf("Resolution set - width = %d height = %d\n", w,h); 
         }
         else
         {
@@ -483,7 +483,7 @@ int main(int argc,char *argv[])
         ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
         if(ret == QHYCCD_SUCCESS)
         {
-            printf("CONTROL_EXPOSURE =%d success!\n", camtime);
+            printf("Exp time = %d \n", camtime);
         }
         else
         {
@@ -720,7 +720,7 @@ int main(int argc,char *argv[])
 						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 						if(ret == QHYCCD_SUCCESS)
 						{
-							printf("CONTROL_EXPOSURE =%d success!\n", camtime);
+							printf("Exp time = %d \n", camtime);
 						}
 						else
 						{
@@ -735,7 +735,7 @@ int main(int argc,char *argv[])
 						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 						if(ret == QHYCCD_SUCCESS)
 						{
-							printf("CONTROL_EXPOSURE =%d success!\n", camtime);
+							printf("Exp time = %d \n", camtime);
 						}
 						else
 						{
@@ -750,7 +750,7 @@ int main(int argc,char *argv[])
 						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 						if(ret == QHYCCD_SUCCESS)
 						{
-							printf("CONTROL_EXPOSURE =%d success!\n", camtime);
+							printf("Exp time = %d \n", camtime);
 						}
 						else
 						{
@@ -764,7 +764,7 @@ int main(int argc,char *argv[])
 						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 						if(ret == QHYCCD_SUCCESS)
 						{
-							printf("CONTROL_EXPOSURE =%d success!\n", camtime);
+							printf("Exp time = %d \n", camtime);
 						}
 						else
 						{
@@ -778,7 +778,7 @@ int main(int argc,char *argv[])
 						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 						if(ret == QHYCCD_SUCCESS)
 						{
-							printf("CONTROL_EXPOSURE =%d success!\n", camtime);
+							printf("Exp time = %d \n", camtime);
 						}
 						else
 						{
@@ -792,7 +792,7 @@ int main(int argc,char *argv[])
 						ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 						if(ret == QHYCCD_SUCCESS)
 						{
-							printf("CONTROL_EXPOSURE =%d success!\n", camtime);
+							printf("Exp time = %d \n", camtime);
 						}
 						else
 						{
@@ -872,7 +872,7 @@ int main(int argc,char *argv[])
         ret = CloseQHYCCD(camhandle);
         if(ret == QHYCCD_SUCCESS)
         {
-            printf("Close QHYCCD success!\n");
+            printf("Closed QHYCCD.\n");
         }
         else
         {
@@ -885,7 +885,7 @@ int main(int argc,char *argv[])
     ret = ReleaseQHYCCDResource();
     if(ret == QHYCCD_SUCCESS)
     {
-        printf("Release SDK Resource  success!\n");
+        printf("SDK Resource released successfully.\n");
     }
     else
     {
