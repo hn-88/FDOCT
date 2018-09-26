@@ -212,7 +212,7 @@ int main(int argc,char *argv[])
 	slopes = Mat::zeros(cv::Size(data_y.rows, data_y.cols), CV_64F);
 	nearestkindex = Mat::zeros(cv::Size( 1, numfftpoints ), CV_32S);
 	
-	resizeWindow("Bscan", oph*2, numfftpoints);		// (width,height)
+	resizeWindow("Bscan", oph, numfftpoints);		// (width,height)
 	
 	for (indextemp=0; indextemp<(data_y.cols); indextemp++) 
 	{
@@ -507,9 +507,8 @@ int main(int argc,char *argv[])
              
             if (ret == QHYCCD_SUCCESS)  
             {
-            //resize(m, opm, Size(), 1.0/binvalue, 1.0/binvalue, INTER_AREA);	// binning (averaging)
-            
-            opm = chan[0];		//take only one channel
+            resize(chan[0], opm, Size(), 1.0/binvalue, 1.0/binvalue, INTER_AREA);	// binning (averaging)
+             //take only one channel
             imshow("show",opm);
             opm.copyTo(data_y);
             //transpose(opm, data_y); 		// void transpose(InputArray src, OutputArray dst)
@@ -522,7 +521,7 @@ int main(int argc,char *argv[])
 					{
 					m = imread("backg.png");
 					split(m,chan);
-					opm=chan[0];
+					resize(chan[0], opm, Size(), 1.0/binvalue, 1.0/binvalue, INTER_AREA);	// binning (averaging)
 					opm.copyTo(data_yb);	
 					 //data_y.copyTo(data_yb);		// saves the "background" or source spectrum	
 					 bkeypressed=0; 
@@ -697,15 +696,16 @@ int main(int argc,char *argv[])
 						
 					indexi++;
 					sprintf(filename, "bscan%03d.png",indexi);
+					normalize(bscan, bscan, 0, 255, NORM_MINMAX);
 					
 #ifdef __unix__
 					strcpy(pathname,dirname);
 					strcat(pathname,"/");
 					strcat(pathname,filename);
-					imwrite(pathname, normfactorforsave*bscan);
+					imwrite(pathname, bscan);
 					
 #else
-					imwrite(filename, normfactorforsave*bscan);
+					imwrite(filename, bscan);
 #endif		 	
 					skeypressed=0; 	 
 						
@@ -856,7 +856,8 @@ int main(int argc,char *argv[])
 		strcpy(pathname,dirname);
 		strcat(pathname,"/");
 		strcat(pathname,"bscan.png");
-		imwrite(pathname, normfactorforsave*bscan);
+		normalize(bscan, bscan, 0, 1, NORM_MINMAX);
+		imwrite(pathname, bscan);
 				
 		 
 #else
