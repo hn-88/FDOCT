@@ -500,6 +500,13 @@ int main(int argc,char *argv[])
         bscantransposed = Mat::zeros(Size(numfftpoints/2, oph), CV_64F);
 	    bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
 	    
+	    for (int p=0; p<(opw.rows); p++)
+		{
+			// create modified Bartlett-Hann window
+			// https://in.mathworks.com/help/signal/ref/barthannwin.html
+			
+		}
+	    
         while(1)		//camera frames acquisition loop
         { 
             ret = QHYCCD_SUCCESS;//GetQHYCCDLiveFrame(camhandle,&w,&h,&bpp,&channels,m.data);
@@ -545,14 +552,17 @@ int main(int argc,char *argv[])
             ////////////////////////////////////////////
              
                 // apodize 
-                // data_y = ( (data_y - data_yb) ./ data_yb ).*gausswin
+                // data_y = ( (data_y - data_yb) ./ data_yb ).*window
                 data_y.convertTo(data_y, CV_64F);
                 data_yb.convertTo(data_yb, CV_64F);
                 data_y =  (data_y - data_yb) / data_yb  ;
                 
+                
+				
                 // approximate DC removal
                 meanval = mean(data_y);		// only the first value of this scalar is nonzero for us, meanval(0)
                 data_y = data_y - meanval(0);
+                
                 
                 // interpolate to linear k space
                 for (int p=0; p<(data_y.rows); p++)
@@ -656,12 +666,22 @@ int main(int argc,char *argv[])
 					strcat(pathname,"/");
 					strcat(pathname,filename);
 					imwrite(pathname, bscan);
+					
+					strcpy(pathname,dirname);
+					strcat(pathname,"/");
 					strcat(pathname,filenamec);
 					imwrite(pathname, cmagI);
+					
+					sprintf(filename, "bscan%03d",indexi);
+					outfile<< filename << "=";
+					outfile<<bscan;
+					outfile<<";"<<std::endl;
 					
 #else
 					imwrite(filename, bscan);
 					imwrite(filenamec, cmagI);
+					sprintf(filename, "bscan%03d",indexi);
+					outfile << filename << bscan;
 #endif		 	
 					//skeypressed=0; do for bscanl also, then make it 0 	 
 						
@@ -723,7 +743,8 @@ int main(int argc,char *argv[])
                  
 					{
 						
-					indexi++;
+					//indexi++;
+					// this was already done in the earlier code
 					sprintf(filename, "bscanlam%03d.png",indexi);
 					sprintf(filenamec, "bscanlamc%03d.png",indexi);
 					//normalize(bscan, bscan, 0, 255, NORM_MINMAX);
@@ -733,12 +754,21 @@ int main(int argc,char *argv[])
 					strcat(pathname,"/");
 					strcat(pathname,filename);
 					imwrite(pathname, bscanl);
+					
+					strcpy(pathname,dirname);
+					strcat(pathname,"/");
 					strcat(pathname,filenamec);
 					imwrite(pathname, cmagIl);
+					
+					sprintf(filename, "bscanlam%03d",indexi);
+					outfile<< filename << "=";
+					outfile<<bscanl;
+					outfile<<";"<<std::endl;
 					
 #else
 					imwrite(filename, bscanl);
 					imwrite(filenamec, cmagIl);
+					outfile << "bscanl" << bscanl;
 #endif		 	
 					skeypressed=0; 	 
 						
@@ -880,11 +910,7 @@ int main(int argc,char *argv[])
 	//} // end of if found 
         
 #ifdef __unix__
-        outfile<<"bscan=";
-		outfile<<bscan;
-		outfile<<";"<<std::endl;
-		 
-		outfile<<"% Parameters were - camgain, camtime, bpp, w , h , camspeed, usbtraffic, binvalue"<<std::endl;
+        outfile<<"% Parameters were - camgain, camtime, bpp, w , h , camspeed, usbtraffic, binvalue"<<std::endl;
 				outfile<<"% "<<camgain; 
 				outfile<<", "<<camtime;  
 				outfile<<", "<<bpp; 
@@ -895,18 +921,13 @@ int main(int argc,char *argv[])
 				outfile<<", "<<binvalue ;
 				
 
-		 
-		strcpy(pathname,dirname);
-		strcat(pathname,"/");
-		strcat(pathname,"bscan.png");
-		normalize(bscan, bscan, 0, 1, NORM_MINMAX);
-		imwrite(pathname, bscan);
+
 				
 		 
 #else
 		//imwrite("bscan.png", normfactorforsave*bscan);
 		 
-		outfile << "bscan" << bscan;
+		
 		outfile << "camgain" << camgain;
 		outfile << "camtime" << camtime;
 		 
