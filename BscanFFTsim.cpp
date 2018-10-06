@@ -117,6 +117,7 @@ int main(int argc,char *argv[])
 	
 	char dirname[80];
 	char filename[20];
+	char filenamec[20];
 	char pathname[40];
 	struct tm *timenow;
 	
@@ -199,8 +200,8 @@ int main(int argc,char *argv[])
 	// assuming current data_y's each row goes from
 	// lambda_min to lambda_max
 	// 830 nm to 870 nm,
-	lambdamin = 830e-9;
-	lambdamax = 870e-9;
+	lambdamin = 816e-9;
+	lambdamax = 884e-9;
 	
 	double deltalambda = (lambdamax - lambdamin ) / data_y.cols;
 	
@@ -614,8 +615,10 @@ int main(int argc,char *argv[])
 				Mat magI = planes[0];
 				Mat cmagI;
 
-				magI += Scalar::all(1);                    // switch to logarithmic scale
-				log(magI, magI);
+				//magI += Scalar::all(1);                    // switch to logarithmic scale
+				//normalize(magI, magI, 0, 1, NORM_MINMAX);
+				//log(magI, magI);	
+				// do the log scale at the end, only for the bscan
 				if(indextemp < averages)
 				{
 					bscantemp = magI.colRange(0,nc/2);
@@ -631,11 +634,39 @@ int main(int argc,char *argv[])
 					bscan.row(0).setTo(Scalar(0));
 				
 					normalize(bscan, bscan, 0, 1, NORM_MINMAX);
+					bscan += Scalar::all(1);                    // switch to logarithmic scale
+					log(bscan, bscan);
+					normalize(bscan, bscan, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 					bscan.convertTo(bscan, CV_8UC1, 255.0);
 					applyColorMap(bscan, cmagI, COLORMAP_JET);
 					
 					imshow( "Bscan", cmagI );
 					
+					if (skeypressed==1)	
+                 
+					{
+						
+					indexi++;
+					sprintf(filename, "bscan%03d.png",indexi);
+					sprintf(filenamec, "bscanc%03d.png",indexi);
+					//normalize(bscan, bscan, 0, 255, NORM_MINMAX);
+					
+#ifdef __unix__
+					strcpy(pathname,dirname);
+					strcat(pathname,"/");
+					strcat(pathname,filename);
+					imwrite(pathname, bscan);
+					strcat(pathname,filenamec);
+					imwrite(pathname, cmagI);
+					
+#else
+					imwrite(filename, bscan);
+					imwrite(filenamec, cmagI);
+#endif		 	
+					//skeypressed=0; do for bscanl also, then make it 0 	 
+						
+					}
+				
 					bscantransposed = Mat::zeros(Size(numfftpoints/2, oph), CV_64F);
 				}
 				 
@@ -660,8 +691,10 @@ int main(int argc,char *argv[])
 				Mat magIl = planesl[0];
 				Mat cmagIl;
 
-				magIl += Scalar::all(1);                    // switch to logarithmic scale
-				log(magIl, magIl);
+				//magIl += Scalar::all(1);                    // switch to logarithmic scale
+				//normalize(magIl, magIl, 0, 1, NORM_MINMAX);
+				//log(magIl, magIl);
+				// do the log scale only at the end, for the bscan
 				if(indextempl < averages)
 				{
 					bscantempl = magIl.colRange(0,nc/2);
@@ -677,10 +710,40 @@ int main(int argc,char *argv[])
 					bscanl.row(0).setTo(Scalar(0));
 				
 					normalize(bscanl, bscanl, 0, 1, NORM_MINMAX);
+					bscanl += Scalar::all(1);                    // switch to logarithmic scale
+					log(bscanl, bscanl);
+					normalize(bscanl, bscanl, 0, 1, NORM_MINMAX);	// normalize the log plot for display
+					
 					bscanl.convertTo(bscanl, CV_8UC1, 255.0);
 					applyColorMap(bscanl, cmagIl, COLORMAP_JET);
 					
 					imshow( "Bscanl", cmagIl );
+					
+					if (skeypressed==1)	
+                 
+					{
+						
+					indexi++;
+					sprintf(filename, "bscanlam%03d.png",indexi);
+					sprintf(filenamec, "bscanlamc%03d.png",indexi);
+					//normalize(bscan, bscan, 0, 255, NORM_MINMAX);
+					
+#ifdef __unix__
+					strcpy(pathname,dirname);
+					strcat(pathname,"/");
+					strcat(pathname,filename);
+					imwrite(pathname, bscanl);
+					strcat(pathname,filenamec);
+					imwrite(pathname, cmagIl);
+					
+#else
+					imwrite(filename, bscanl);
+					imwrite(filenamec, cmagIl);
+#endif		 	
+					skeypressed=0; 	 
+						
+					}
+				
 					
 					bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
 				}
@@ -690,27 +753,7 @@ int main(int argc,char *argv[])
 				
             ////////////////////////////////////////////
                 
-                if (skeypressed==1)	
-                 
-					{
-						
-					indexi++;
-					sprintf(filename, "bscan%03d.png",indexi);
-					normalize(bscan, bscan, 0, 255, NORM_MINMAX);
-					
-#ifdef __unix__
-					strcpy(pathname,dirname);
-					strcat(pathname,"/");
-					strcat(pathname,filename);
-					imwrite(pathname, bscan);
-					
-#else
-					imwrite(filename, bscan);
-#endif		 	
-					skeypressed=0; 	 
-						
-					}
-				
+                
 					 
                 key=waitKey(30); // wait 30 milliseconds for keypress
                 // max frame rate at 1280x960 is 30 fps => 33 milliseconds
