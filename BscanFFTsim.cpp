@@ -179,9 +179,12 @@ int main(int argc,char *argv[])
 	Mat data_ylin( oph, numfftpoints, CV_64F );
 	Mat data_yb( oph, opw, CV_64F );
 	Mat padded, paddedn;
+	Mat barthannwin( 1, opw, CV_64F );		// the Mat constructor Mat(rows,columns,type);
 	
 	// initialize data_yb with zeros
-	data_yb = Mat::zeros(Size(opw, oph), CV_64F);		//Size(cols,rows)		
+	data_yb = Mat::zeros(Size(opw, oph), CV_64F);		//Size(cols,rows)	
+	
+	// 	
 	 
 	int nr, nc;
 	
@@ -500,13 +503,16 @@ int main(int argc,char *argv[])
         bscantransposed = Mat::zeros(Size(numfftpoints/2, oph), CV_64F);
 	    bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
 	    
-	    for (int p=0; p<(opw.rows); p++)
+	    for (int p=0; p<(opw); p++)
 		{
 			// create modified Bartlett-Hann window
 			// https://in.mathworks.com/help/signal/ref/barthannwin.html
+			float nn = p;
+			float NN = opw-1;
+			barthannwin.at<double>(0,p) = 0.62 - 0.48*std::abs(nn/NN - 0.5) + 0.38*std::cos(2*pi*(nn/NN - 0.5));
 			
 		}
-	    
+		
         while(1)		//camera frames acquisition loop
         { 
             ret = QHYCCD_SUCCESS;//GetQHYCCDLiveFrame(camhandle,&w,&h,&bpp,&channels,m.data);
@@ -557,11 +563,19 @@ int main(int argc,char *argv[])
                 data_yb.convertTo(data_yb, CV_64F);
                 data_y =  (data_y - data_yb) / data_yb  ;
                 
-                
+                for (int p=0; p<(data_y.rows); p++)
+                {
+					//DC removal
+					Scalar meanval = mean(data_y.row(p));
+					data_y.row(p) = data_y.row(p) - meanval(0);		// Only the first value of the scalar is useful for us
+					
+					//windowing
+					multiply(data_y.row(p), barthannwin, data_y.row(p)); 
+				}			
 				
                 // approximate DC removal
-                meanval = mean(data_y);		// only the first value of this scalar is nonzero for us, meanval(0)
-                data_y = data_y - meanval(0);
+                //meanval = mean(data_y);		// only the first value of this scalar is nonzero for us, meanval(0)
+                //data_y = data_y - meanval(0);
                 
                 
                 // interpolate to linear k space
