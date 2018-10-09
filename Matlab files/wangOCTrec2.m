@@ -78,11 +78,18 @@ end
 %imwrite(imgi,'imgi.png')
 %imwrite(backg, 'backg.png') 
 
+
 %plot(k/k0,I_k1/max(I_k1), 'k'); 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % reconstruction
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% check out 8 bit imgi
+imgi = floor(imgi*255);
+piimgi = floor(piimgi*255);
+backg = floor(backg*255);
+
 lambdamin = 816e-9;
 lambdamax = 884e-9;
 deltalambda = (lambdamax - lambdamin ) / columns(imgi);
@@ -163,15 +170,15 @@ for indexi=1:rows(resizedim)
 % bscant(1,:)=zeros(1,rows(resizedim));
 % bscang(1,:)=zeros(1,rows(resizedim));
  figure;
- imagesc(log(bscan(1:160,:)./max(bscan(1:160,:)))); title('Rect Window');colorbar;
+ imagesc(10*log10(bscan(1:160,:)./max(bscan(1:160,:)))); title('Rect Window');colorbar;
  figure;
- imagesc(log(bscang(1:160,:)./max(bscang(1:160,:)))); title('Gaussian Window');colorbar;
+ imagesc(10*log10(bscang(1:160,:)./max(bscang(1:160,:)))); title('Gaussian Window');colorbar;
  figure;
- imagesc(log(bscant(1:160,:)./max(bscant(1:160,:)))); title('Tukey Window');colorbar;
+ imagesc(10*log10(bscant(1:160,:)./max(bscant(1:160,:)))); title('Tukey Window');colorbar;
  figure;
- imagesc(log(bscanb(1:160,:)./max(bscanb(1:160,:)))); title('BH Window');colorbar;
+ imagesc(10*log10(bscanb(1:160,:)./max(bscanb(1:160,:)))); title('BH Window');colorbar;
  figure;
- imagesc(log(bscanbth(1:160,:)./max(bscanbth(1:160,:)))); title('BTH Window');colorbar;
+ imagesc(10*log10(bscanbth(1:160,:)./max(bscanbth(1:160,:)))); title('BTH Window');colorbar;
  
  figure;
  plot(bscang(1:160,230)); title('Linear plot, Gaussian window');
