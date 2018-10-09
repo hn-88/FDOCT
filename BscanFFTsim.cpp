@@ -88,7 +88,7 @@ int main(int argc,char *argv[])
     int numfftpoints=1024;
     
      
-    bool doneflag=0, skeypressed=0, bkeypressed=0;
+    bool doneflag=0, skeypressed=0, bkeypressed=0, pkeypressed=0;
     
     w=640;
     h=480;
@@ -178,18 +178,20 @@ int main(int argc,char *argv[])
 	Mat data_y( oph, opw, CV_64F );		// the Mat constructor Mat(rows,columns,type)
 	Mat data_ylin( oph, numfftpoints, CV_64F );
 	Mat data_yb( oph, opw, CV_64F );
+	Mat data_yp( oph, opw, CV_64F );
 	Mat padded, paddedn;
 	Mat barthannwin( 1, opw, CV_64F );		// the Mat constructor Mat(rows,columns,type);
 	
 	// initialize data_yb with zeros
 	data_yb = Mat::zeros(Size(opw, oph), CV_64F);		//Size(cols,rows)	
-	
+	data_yp = Mat::zeros(Size(opw, oph), CV_64F);
 	// 	
 	 
 	int nr, nc;
 	
 	Mat m, opm, opmvector, bscan, bscantemp, bscantransposed, chan[3];
 	Mat bscanl, bscantempl, bscantransposedl;
+	double minbscan, maxbscan, minbscanl, maxbscanl;
 	Scalar meanval;
 	Mat lambdas, k, klinear;
 	Mat diffk, slopes, fractionalk, nearestkindex;
@@ -541,6 +543,18 @@ int main(int argc,char *argv[])
 					 bkeypressed=0; 
 						
 					}	
+					
+			if (pkeypressed==1)	
+                 
+					{
+					m = imread("piimgi.png");
+					split(m,chan);
+					resize(chan[0], opm, Size(), 1.0/binvalue, 1.0/binvalue, INTER_AREA);	// binning (averaging)
+					opm.copyTo(data_yp);	
+					 //data_y.copyTo(data_yb);		// saves the "background" or source spectrum	
+					 pkeypressed=0; 
+						
+					}
 			
 			fps++;
             t_end = time(NULL);
@@ -561,7 +575,8 @@ int main(int argc,char *argv[])
                 // data_y = ( (data_y - data_yb) ./ data_yb ).*window
                 data_y.convertTo(data_y, CV_64F);
                 data_yb.convertTo(data_yb, CV_64F);
-                data_y =  (data_y - data_yb) / data_yb  ;
+                data_yp.convertTo(data_yp, CV_64F);
+                data_y =  (data_y - data_yp) / data_yb  ;
                 
                 for (int p=0; p<(data_y.rows); p++)
                 {
@@ -657,14 +672,25 @@ int main(int argc,char *argv[])
 					// remove dc
 					bscan.row(0).setTo(Scalar(0));
 				
-					normalize(bscan, bscan, 0, 1, NORM_MINMAX);
+					//this reduces dyn range! - 
+					//normalize(bscan, bscan, 0, 1, NORM_MINMAX);
+					minMaxLoc(bscan, &minbscan, &maxbscan);
+					//std::cout<<"bscan before"<<std::endl;
+					std::cout<< "maxbscan="<<maxbscan  <<std::endl;
+					//std::cout<< "minbscan="<<minbscan  <<std::endl;
+					bscan = bscan/maxbscan;
+					//std::cout<<"bscan after"<<std::endl;
+					//std::cout<< bscan  <<std::endl;
 					bscan += Scalar::all(1);                    // switch to logarithmic scale
 					log(bscan, bscan);
-					normalize(bscan, bscan, 0, 1, NORM_MINMAX);	// normalize the log plot for display
-					bscan.convertTo(bscan, CV_8UC1, 255.0);
-					applyColorMap(bscan, cmagI, COLORMAP_JET);
+					//convert to dB = 10 log10(value), from the natural log above
+					bscan = bscan / 0.2303;
+					//normalize(bscan, bscan, 0, 1, NORM_MINMAX);	// normalize the log plot for display
+					//bscan.convertTo(bscan, CV_8UC1, 255.0);
+					//applyColorMap(bscan, cmagI, COLORMAP_JET);
 					
-					imshow( "Bscan", cmagI );
+					//imshow( "Bscan", cmagI );
+					imshow( "Bscan", bscan );
 					
 					if (skeypressed==1)	
                  
@@ -905,6 +931,11 @@ int main(int argc,char *argv[])
                 case 'b':  
 					 
 							bkeypressed=1;
+					break; 
+					
+				case 'p':  
+					 
+							pkeypressed=1;
 					break; 
 					
 				 
