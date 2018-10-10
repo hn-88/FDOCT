@@ -33,9 +33,7 @@
  * 
  * 
  * Hari Nandakumar
- * 15 Sep 2018 to
- * 25 Sep 2018
- * 			
+ * 15 Sep 2018  * 			
  *			 
  * 			 
  */
@@ -88,7 +86,7 @@ int main(int argc,char *argv[])
     int numfftpoints=1024;
     
      
-    bool doneflag=0, skeypressed=0, bkeypressed=0;
+    bool doneflag=0, skeypressed=0, bkeypressed=0, pkeypressed=0;
     
     w=640;
     h=480;
@@ -108,15 +106,16 @@ int main(int argc,char *argv[])
 	moveWindow("Bscan", 800, 0);
 	
 	
-	namedWindow("linearized",0); // 0 = WINDOW_NORMAL
-	moveWindow("linearized", 20, 500);
+	//namedWindow("linearized",0); // 0 = WINDOW_NORMAL
+	//moveWindow("linearized", 20, 500);
 	
 	
-	namedWindow("Bscanl",0); // 0 = WINDOW_NORMAL
-	moveWindow("Bscanl", 400, 0);
+	//namedWindow("Bscanl",0); // 0 = WINDOW_NORMAL
+	//moveWindow("Bscanl", 400, 0);
 	
 	char dirname[80];
 	char filename[20];
+	char filenamec[20];
 	char pathname[40];
 	struct tm *timenow;
 	
@@ -177,15 +176,22 @@ int main(int argc,char *argv[])
 	Mat data_y( oph, opw, CV_64F );		// the Mat constructor Mat(rows,columns,type)
 	Mat data_ylin( oph, numfftpoints, CV_64F );
 	Mat data_yb( oph, opw, CV_64F );
+	Mat data_yp( oph, opw, CV_64F );
 	Mat padded, paddedn;
+	Mat barthannwin( 1, opw, CV_64F );		// the Mat constructor Mat(rows,columns,type);
 	
 	// initialize data_yb with zeros
 	data_yb = Mat::zeros(Size(opw, oph), CV_64F);		//Size(cols,rows)		
+	data_yp = Mat::zeros(Size(opw, oph), CV_64F);
 	 
 	int nr, nc;
 	
-	Mat m, opm, opmvector, bscan, bscantemp, bscantransposed;
-	Mat bscanl, bscantempl, bscantransposedl;
+	Mat m, opm, opmvector, bscan, bscandisp, bscantemp, bscantransposed, chan[3];
+	//Mat bscanl, bscantempl, bscantransposedl;
+	Mat magI, cmagI;
+	//Mat magIl, cmagIl;
+	double minbscan, maxbscan;
+	//double minbscanl, maxbscanl;
 	Scalar meanval;
 	Mat lambdas, k, klinear;
 	Mat diffk, slopes, fractionalk, nearestkindex;
@@ -199,8 +205,8 @@ int main(int argc,char *argv[])
 	// assuming current data_y's each row goes from
 	// lambda_min to lambda_max
 	// 830 nm to 870 nm,
-	lambdamin = 830e-9;
-	lambdamax = 870e-9;
+	lambdamin = 816e-9;
+	lambdamax = 884e-9;
 	
 	double deltalambda = (lambdamax - lambdamin ) / data_y.cols;
 	
@@ -212,7 +218,7 @@ int main(int argc,char *argv[])
 	slopes = Mat::zeros(cv::Size(data_y.rows, data_y.cols), CV_64F);
 	nearestkindex = Mat::zeros(cv::Size( 1, numfftpoints ), CV_32S);
 	
-	resizeWindow("Bscan", oph*2, numfftpoints);		// (width,height)
+	resizeWindow("Bscan", oph, numfftpoints);		// (width,height)
 	
 	for (indextemp=0; indextemp<(data_y.cols); indextemp++) 
 	{
@@ -496,7 +502,17 @@ int main(int argc,char *argv[])
         indexi = 0;
         indextemp = 0;
         bscantransposed = Mat::zeros(Size(numfftpoints/2, oph), CV_64F);
-	    bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
+	    //bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
+	    
+	    for (int p=0; p<(opw); p++)
+		{
+			// create modified Bartlett-Hann window
+			// https://in.mathworks.com/help/signal/ref/barthannwin.html
+			float nn = p;
+			float NN = opw-1;
+			barthannwin.at<double>(0,p) = 0.62 - 0.48*std::abs(nn/NN - 0.5) + 0.38*std::cos(2*pi*(nn/NN - 0.5));
+			
+		}
 	    
         while(1)		//camera frames acquisition loop
         { 
@@ -521,6 +537,14 @@ int main(int argc,char *argv[])
 						
 					}	
 			
+			if (pkeypressed==1)	
+                 
+					{
+						
+					data_y.copyTo(data_yp);		// saves the pi shifted or J0 spectrum	
+					pkeypressed=0; 
+						
+					}
 			fps++;
             t_end = time(NULL);
                 if(t_end - t_start >= 5)
@@ -540,11 +564,19 @@ int main(int argc,char *argv[])
                 // data_y = ( (data_y - data_yb) ./ data_yb ).*gausswin
                 data_y.convertTo(data_y, CV_64F);
                 data_yb.convertTo(data_yb, CV_64F);
-                data_y =  (data_y - data_yb) / data_yb  ;
+                data_yp.convertTo(data_yp, CV_64F);
+                data_y =  (data_y - data_yp) / data_yb  ;
                 
-                // approximate DC removal
-                meanval = mean(data_y);		// only the first value of this scalar is nonzero for us, meanval(0)
-                data_y = data_y - meanval(0);
+                for (int p=0; p<(data_y.rows); p++)
+                {
+					//DC removal
+					Scalar meanval = mean(data_y.row(p));
+					data_y.row(p) = data_y.row(p) - meanval(0);		// Only the first value of the scalar is useful for us
+					
+					//windowing
+					multiply(data_y.row(p), barthannwin, data_y.row(p)); 
+				}			
+				
                 
                 // interpolate to linear k space
                 for (int p=0; p<(data_y.rows); p++)
@@ -577,22 +609,14 @@ int main(int argc,char *argv[])
 
                 // InvFFT
                 
-                //std::cout << "data_y.rows = " << data_y.rows << std::endl;
-                //std::cout << "data_ylin.rows = " << data_ylin.rows << std::endl;
-                //std::cout << "slopes.rows = " << slopes.rows << std::endl;
-                //std::cout << "nearestkindex.rows = " << nearestkindex.rows << std::endl;
-                //std::cout << "nearestkindex.cols = " << nearestkindex.cols << std::endl;
-                //std::cout << "klinear.rows = " << klinear.rows << std::endl;
-                //std::cout << "k.rows = " << k.rows << std::endl;
-                
                 nr = getOptimalDFTSize( data_ylin.rows );	//128 when taking transpose(opm, data_y);
                 nc = getOptimalDFTSize( data_ylin.cols );	//96
                 //nc = nc * 4;		// 4x oversampling
                
                  
                 //copyMakeBorder(data_ylin, padded, 0, nr - data_ylin.rows, 0, nc - data_ylin.cols, BORDER_CONSTANT, Scalar::all(0));
-                normalize(data_ylin, paddedn, 0, 1, NORM_MINMAX);
-                imshow("linearized", paddedn);
+                //normalize(data_ylin, paddedn, 0, 1, NORM_MINMAX);
+                //imshow("linearized", paddedn);
 
 				Mat planes[] = {Mat_<float>(data_ylin), Mat::zeros(data_ylin.size(), CV_32F)};
 				Mat complexI;
@@ -603,12 +627,9 @@ int main(int argc,char *argv[])
 				// compute the magnitude and switch to logarithmic scale
 				// => log(1 + sqrt(Re(DFT(I))^2 + Im(DFT(I))^2))
 				split(complexI, planes);                   // planes[0] = Re(DFT(I), planes[1] = Im(DFT(I))
-				magnitude(planes[0], planes[1], planes[0]);// planes[0] = magnitude
-				Mat magI = planes[0];
-				Mat cmagI;
+				magnitude(planes[0], planes[1], magI); 
+				
 
-				magI += Scalar::all(1);                    // switch to logarithmic scale
-				log(magI, magI);
 				if(indextemp < averages)
 				{
 					bscantemp = magI.colRange(0,nc/2);
@@ -620,68 +641,18 @@ int main(int argc,char *argv[])
 				{
 					indextemp = 0;
 					transpose(bscantransposed, bscan); 
-					// remove dc
-					bscan.row(0).setTo(Scalar(0));
 				
-					normalize(bscan, bscan, 0, 1, NORM_MINMAX);
-					bscan.convertTo(bscan, CV_8UC1, 255.0);
-					applyColorMap(bscan, cmagI, COLORMAP_JET);
+					bscan += Scalar::all(0.000001);   	// to prevent log of 0                 
+					log(bscan, bscan);					// switch to logarithmic scale
+					//convert to dB = 10 log10(value), from the natural log above
+					bscan = bscan / 0.2303;
+					 
+					normalize(bscan, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
+					bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
+					applyColorMap(bscandisp, cmagI, COLORMAP_JET);
 					
 					imshow( "Bscan", cmagI );
 					
-					bscantransposed = Mat::zeros(Size(numfftpoints/2, oph), CV_64F);
-				}
-				 
-				//////////////////////////////////
-				nr = getOptimalDFTSize( data_y.rows );	//128 when taking transpose(opm, data_y);
-                nc = getOptimalDFTSize( data_y.cols );	//96
-                //nc = nc * 4;		// 4x oversampling
-               
-                 
-                copyMakeBorder(data_y, padded, 0, nr - data_y.rows, 0, nc - data_y.cols, BORDER_CONSTANT, Scalar::all(0));
-
-				Mat planesl[] = {Mat_<float>(padded), Mat::zeros(padded.size(), CV_32F)};
-				Mat complexIl;
-				merge(planesl, 2, complexIl);         // Add to the expanded another plane with zeros
-
-				dft(complexIl, complexIl, DFT_ROWS|DFT_INVERSE);            // this way the result may fit in the source matrix
-
-				// compute the magnitude and switch to logarithmic scale
-				// => log(1 + sqrt(Re(DFT(I))^2 + Im(DFT(I))^2))
-				split(complexIl, planesl);                   // planes[0] = Re(DFT(I), planes[1] = Im(DFT(I))
-				magnitude(planesl[0], planesl[1], planesl[0]);// planes[0] = magnitude
-				Mat magIl = planesl[0];
-				Mat cmagIl;
-
-				magIl += Scalar::all(1);                    // switch to logarithmic scale
-				log(magIl, magIl);
-				if(indextempl < averages)
-				{
-					bscantempl = magIl.colRange(0,nc/2);
-					bscantempl.convertTo(bscantempl,CV_64F);
-					accumulate(bscantempl, bscantransposedl);
-					indextempl++;
-				}
-				else
-				{
-					indextempl = 0;
-					transpose(bscantransposedl, bscanl); 
-					// remove dc
-					bscanl.row(0).setTo(Scalar(0));
-				
-					normalize(bscanl, bscanl, 0, 1, NORM_MINMAX);
-					bscanl.convertTo(bscanl, CV_8UC1, 255.0);
-					applyColorMap(bscanl, cmagIl, COLORMAP_JET);
-					
-					imshow( "Bscanl", cmagIl );
-					
-					bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
-				}
-				 
-				
-				
-				
-            ////////////////////////////////////////////
                 
                 if (skeypressed==1)	
                  
@@ -689,22 +660,131 @@ int main(int argc,char *argv[])
 						
 					indexi++;
 					sprintf(filename, "bscan%03d.png",indexi);
+					sprintf(filenamec, "bscanc%03d.png",indexi);
+					//normalize(bscan, bscan, 0, 255, NORM_MINMAX);
 					
 #ifdef __unix__
 					strcpy(pathname,dirname);
 					strcat(pathname,"/");
 					strcat(pathname,filename);
-					imwrite(pathname, normfactorforsave*bscan);
+					imwrite(pathname, bscandisp);
+					
+					strcpy(pathname,dirname);
+					strcat(pathname,"/");
+					strcat(pathname,filenamec);
+					imwrite(pathname, cmagI);
+					
+					sprintf(filename, "bscan%03d",indexi);
+					outfile<< filename << "=";
+					outfile<<bscan;
+					outfile<<";"<<std::endl;
 					
 #else
-					imwrite(filename, normfactorforsave*bscan);
+					imwrite(filename, bscandisp);
+					imwrite(filenamec, cmagI);
+					sprintf(filename, "bscan%03d",indexi);
+					outfile << filename << bscan;
 #endif		 	
-					skeypressed=0; 	 
+					skeypressed=0; // if necessary, comment, do for bscanl also, then make it 0 	 
 						
 					}
 				
+					bscantransposed = Mat::zeros(Size(numfftpoints/2, oph), CV_64F);
+				}
+				 
+				 //////////////////////////////////////////////////////
+				// a bscan without linearization, sanity check.
+				//////////////////////////////////
+				//nr = getOptimalDFTSize( data_y.rows );	//128 when taking transpose(opm, data_y);
+                //nc = getOptimalDFTSize( data_y.cols );	//96
+                ////nc = nc * 4;		// 4x oversampling
+               
+                 
+                //copyMakeBorder(data_y, padded, 0, nr - data_y.rows, 0, nc - data_y.cols, BORDER_CONSTANT, Scalar::all(0));
+
+				//Mat planesl[] = {Mat_<float>(padded), Mat::zeros(padded.size(), CV_32F)};
+				//Mat complexIl;
+				//merge(planesl, 2, complexIl);         // Add to the expanded another plane with zeros
+
+				//dft(complexIl, complexIl, DFT_ROWS|DFT_INVERSE);            // this way the result may fit in the source matrix
+
+				//// compute the magnitude and switch to logarithmic scale
+				//// => log(1 + sqrt(Re(DFT(I))^2 + Im(DFT(I))^2))
+				//split(complexIl, planesl);                   // planes[0] = Re(DFT(I), planes[1] = Im(DFT(I))
+				//magnitude(planesl[0], planesl[1], magIl);
+				
+				
+
+				//if(indextempl < averages)
+				//{
+					//bscantempl = magIl.colRange(0,nc/2);
+					//bscantempl.convertTo(bscantempl,CV_64F);
+					//accumulate(bscantempl, bscantransposedl);
+					//indextempl++;
+				//}
+				//else
+				//{
+					//indextempl = 0;
+					//transpose(bscantransposedl, bscanl); 
+					//// remove dc
+					//bscanl.row(0).setTo(Scalar(0));
+				
+					//normalize(bscanl, bscanl, 0, 1, NORM_MINMAX);
+					//bscanl += Scalar::all(1);                    // switch to logarithmic scale
+					//log(bscanl, bscanl);
+					//normalize(bscanl, bscanl, 0, 1, NORM_MINMAX);	// normalize the log plot for display
+					
+					//bscanl.convertTo(bscanl, CV_8UC1, 255.0);
+					//applyColorMap(bscanl, cmagIl, COLORMAP_JET);
+					
+					//imshow( "Bscanl", cmagIl );
+					
+					//if (skeypressed==1)	
+                 
+					//{
+						
+					////indexi++;
+					//// this was already done in the earlier code
+					//sprintf(filename, "bscanlam%03d.png",indexi);
+					//sprintf(filenamec, "bscanlamc%03d.png",indexi);
+					////normalize(bscan, bscan, 0, 255, NORM_MINMAX);
+					
+//#ifdef __unix__
+					//strcpy(pathname,dirname);
+					//strcat(pathname,"/");
+					//strcat(pathname,filename);
+					//imwrite(pathname, bscanl);
+					
+					//strcpy(pathname,dirname);
+					//strcat(pathname,"/");
+					//strcat(pathname,filenamec);
+					//imwrite(pathname, cmagIl);
+					
+					//sprintf(filename, "bscanlam%03d",indexi);
+					//outfile<< filename << "=";
+					//outfile<<bscanl;
+					//outfile<<";"<<std::endl;
+					
+//#else
+					//imwrite(filename, bscanl);
+					//imwrite(filenamec, cmagIl);
+					//outfile << "bscanl" << bscanl;
+//#endif		 	
+					//skeypressed=0; 	 
+						
+					//}
+				
+					
+					//bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
+				//}
+				 
+				
+				
+				
+            ////////////////////////////////////////////
+				
 					 
-                key=waitKey(30); // wait 30 milliseconds for keypress
+                key=waitKey(3); // wait 30 milliseconds for keypress
                 // max frame rate at 1280x960 is 30 fps => 33 milliseconds
                 
                 switch (key) 
@@ -811,6 +891,11 @@ int main(int argc,char *argv[])
 							bkeypressed=1;
 					break; 
 					
+				case 'p':  
+					 
+							pkeypressed=1;
+					break; 
+					
 				 
 				default:
 					break;
@@ -828,10 +913,6 @@ int main(int argc,char *argv[])
 	} // end of if found 
         
 #ifdef __unix__
-        outfile<<"bscan=";
-		outfile<<bscan;
-		outfile<<";"<<std::endl;
-		 
 		outfile<<"% Parameters were - camgain, camtime, bpp, w , h , camspeed, usbtraffic, binvalue"<<std::endl;
 				outfile<<"% "<<camgain; 
 				outfile<<", "<<camtime;  
@@ -843,17 +924,13 @@ int main(int argc,char *argv[])
 				outfile<<", "<<binvalue ;
 				
 
-		 
-		strcpy(pathname,dirname);
-		strcat(pathname,"/");
-		strcat(pathname,"bscan.png");
-		imwrite(pathname, normfactorforsave*bscan);
+
 				
 		 
 #else
 		//imwrite("bscan.png", normfactorforsave*bscan);
 		 
-		outfile << "bscan" << bscan;
+		
 		outfile << "camgain" << camgain;
 		outfile << "camtime" << camtime;
 		 
