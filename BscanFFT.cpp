@@ -84,7 +84,7 @@ int main(int argc,char *argv[])
     int camtime = 1,camgain = 1,camspeed = 1,cambinx = 2,cambiny = 2,usbtraffic = 10;
     int camgamma = 1, binvalue=1, normfactor=1, normfactorforsave=25;
     int numfftpoints=1024;
-    
+    bool saveframes = 0;
      
     bool doneflag=0, skeypressed=0, bkeypressed=0, pkeypressed=0;
     
@@ -154,6 +154,8 @@ int main(int argc,char *argv[])
 			infile >> averages;
 			infile >> tempstring;
 			infile >> numfftpoints;
+			infile >> tempstring;
+			infile >> saveframes;
 			infile.close();
 		  }
 
@@ -183,10 +185,12 @@ int main(int argc,char *argv[])
 	// initialize data_yb with zeros
 	data_yb = Mat::zeros(Size(opw, oph), CV_64F);		//Size(cols,rows)		
 	data_yp = Mat::zeros(Size(opw, oph), CV_64F);
-	 
+	
+	Mat bscansave[100];		// allocate buffer to save frames, max 100
+	
 	int nr, nc;
 	
-	Mat m, opm, opmvector, bscan, bscandisp, bscantemp, bscantransposed, chan[3];
+	Mat m, opm, opmvector, bscan, bscandisp, bscantemp, bscantemp2, bscantransposed, chan[3];
 	//Mat bscanl, bscantempl, bscantransposedl;
 	Mat magI, cmagI;
 	//Mat magIl, cmagIl;
@@ -635,11 +639,19 @@ int main(int argc,char *argv[])
 					bscantemp = magI.colRange(0,nc/2);
 					bscantemp.convertTo(bscantemp,CV_64F);
 					accumulate(bscantemp, bscantransposed);
+					if ( saveframes==1 )
+					{
+						// save the individual frames before averaging also
+						bscantemp.copyTo(bscansave[indextemp]);
+					}
+						
 					indextemp++;
+					 
 				}
 				else
 				{
 					indextemp = 0;
+					
 					transpose(bscantransposed, bscan); 
 				
 					bscan += Scalar::all(0.000001);   	// to prevent log of 0                 
@@ -685,6 +697,33 @@ int main(int argc,char *argv[])
 					sprintf(filename, "bscan%03d",indexi);
 					outfile << filename << bscan;
 #endif		 	
+					if ( saveframes==1 )
+					{
+						for (int ii = 0; ii<averages; ii++)
+						{
+							// save the bscansave array after processing
+							transpose(bscansave[ii], bscantemp2); 
+							bscantemp2 += Scalar::all(0.000001);   	// to prevent log of 0                 
+							log(bscantemp2, bscantemp2);					// switch to logarithmic scale
+							//convert to dB = 10 log10(value), from the natural log above
+							bscantemp2 = bscantemp2 / 0.2303;
+							normalize(bscantemp2, bscantemp2, 0, 1, NORM_MINMAX);	// normalize the log plot for save
+							bscantemp2.convertTo(bscantemp2, CV_8UC1, 255.0);		// imwrite needs 0-255 CV_8U
+							sprintf(filename, "bscan%03d-%03d.png",indexi, ii);
+						 
+#ifdef __unix__
+							strcpy(pathname,dirname);
+							strcat(pathname,"/");
+							strcat(pathname,filename);
+							imwrite(pathname, bscantemp2);
+					
+#else
+							imwrite(filename, bscantemp2);
+#endif		 	
+
+						}
+					}
+					
 					skeypressed=0; // if necessary, comment, do for bscanl also, then make it 0 	 
 						
 					}
