@@ -181,16 +181,21 @@ int main(int argc,char *argv[])
 	Mat data_yp( oph, opw, CV_64F );
 	Mat padded, paddedn;
 	Mat barthannwin( 1, opw, CV_64F );		// the Mat constructor Mat(rows,columns,type);
+	Mat baccum;
+	int baccumcount;
 	
 	// initialize data_yb with zeros
 	data_yb = Mat::zeros(Size(opw, oph), CV_64F);		//Size(cols,rows)		
 	data_yp = Mat::zeros(Size(opw, oph), CV_64F);
+	baccum = Mat::zeros(Size(opw, oph), CV_64F);
+	baccumcount = 0;
 	
 	Mat bscansave[100];		// allocate buffer to save frames, max 100
 	
 	int nr, nc;
 	
 	Mat m, opm, opmvector, bscan, bscandisp, bscantemp, bscantemp2, bscantransposed, chan[3];
+	
 	//Mat bscanl, bscantempl, bscantransposedl;
 	Mat magI, cmagI;
 	//Mat magIl, cmagIl;
@@ -535,9 +540,18 @@ int main(int argc,char *argv[])
 			if (bkeypressed==1)	
                  
 					{
-						
-					 data_y.copyTo(data_yb);		// saves the "background" or source spectrum	
-					 bkeypressed=0; 
+					 if (baccumcount < averages)
+					 {
+						 accumulate(data_y, baccum);
+						 baccumcount++;
+					 }
+					 else
+					 {
+						 baccum.copyTo(data_yb);		// saves the "background" or source spectrum	
+						 normalize(data_yb, data_yb, 0, 1, NORM_MINMAX);
+						 bkeypressed=0; 
+						 baccumcount=0;
+					 }
 						
 					}	
 			
@@ -546,6 +560,8 @@ int main(int argc,char *argv[])
 					{
 						
 					data_y.copyTo(data_yp);		// saves the pi shifted or J0 spectrum	
+					data_yp.convertTo(data_yp, CV_64F);
+					normalize(data_yp, data_yp, 0, 1, NORM_MINMAX);
 					pkeypressed=0; 
 						
 					}
@@ -567,8 +583,9 @@ int main(int argc,char *argv[])
                 // apodize 
                 // data_y = ( (data_y - data_yb) ./ data_yb ).*gausswin
                 data_y.convertTo(data_y, CV_64F);
-                data_yb.convertTo(data_yb, CV_64F);
-                data_yp.convertTo(data_yp, CV_64F);
+                normalize(data_y, data_y, 0, 1, NORM_MINMAX);
+                //data_yb.convertTo(data_yb, CV_64F);
+                //
                 data_y =  (data_y - data_yp) / data_yb  ;
                 
                 for (int p=0; p<(data_y.rows); p++)
