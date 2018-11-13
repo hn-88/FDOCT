@@ -19,8 +19,13 @@
  * with binning
  * and inputs from ini file.
  * 
+ * Captures (background) spectrum on receipt of b key
+ * Captures pi shifted or J0 frame on receipt of p key
  * Saves frames on receipt of s key 
  * 
+ * Do manual frame by frame averaging with ini file option
+ * 
+ * Save individual frames on averaging if option chosen in ini file
  * 
  * + key increases exposure time by 0.1 ms
  * - key decreases exposure time by 0.1 ms
@@ -77,7 +82,7 @@ int main(int argc,char *argv[])
     unsigned int w,h,bpp=8,channels, cambitdepth=16, numofframes=100; 
     unsigned int numofm1slices=10, numofm2slices=10, firstaccum, secondaccum;
     unsigned int offsetx=0, offsety=0;
-    unsigned int indexi, averages=1, opw, oph;
+    unsigned int indexi, manualindexi, averages=1, opw, oph;
     int  indextemp, indextempl;
 
      
@@ -85,8 +90,11 @@ int main(int argc,char *argv[])
     int camgamma = 1, binvalue=1, normfactor=1, normfactorforsave=25;
     int numfftpoints=1024;
     bool saveframes = 0;
+    bool manualaveraging = 0;
+    unsigned int manualaverages = 1;
      
     bool doneflag=0, skeypressed=0, bkeypressed=0, pkeypressed=0;
+    
     
     w=640;
     h=480;
@@ -99,11 +107,7 @@ int main(int argc,char *argv[])
     char dirdescr[60];
     sprintf(dirdescr, "_");
      
-	namedWindow("show",0); // 0 = WINDOW_NORMAL
-	moveWindow("show", 20, 0);
-	 
-	namedWindow("Bscan",0); // 0 = WINDOW_NORMAL
-	moveWindow("Bscan", 800, 0);
+	
 	
 	
 	//namedWindow("linearized",0); // 0 = WINDOW_NORMAL
@@ -156,12 +160,26 @@ int main(int argc,char *argv[])
 			infile >> numfftpoints;
 			infile >> tempstring;
 			infile >> saveframes;
+			infile >> tempstring;
+			infile >> manualaveraging;
+			infile >> tempstring;
+			infile >> manualaverages;
 			infile.close();
 		  }
 
 		  else std::cout << "Unable to open ini file, using defaults.";
 		  
-			
+	namedWindow("show",0); // 0 = WINDOW_NORMAL
+	moveWindow("show", 20, 0);
+	 
+	namedWindow("Bscan",0); // 0 = WINDOW_NORMAL
+	moveWindow("Bscan", 800, 0);	
+	
+	if(manualaveraging)
+	{
+		namedWindow("Bscanm",0); // 0 = WINDOW_NORMAL
+		moveWindow("Bscanm", 800, 400);
+	}
 	   
 	   
     /////////////////////////////////////
@@ -181,23 +199,27 @@ int main(int argc,char *argv[])
 	Mat data_yp( oph, opw, CV_64F );
 	Mat padded, paddedn;
 	Mat barthannwin( 1, opw, CV_64F );		// the Mat constructor Mat(rows,columns,type);
-	Mat baccum;
-	int baccumcount;
+	Mat baccum, manualaccum;
+	int baccumcount, manualaccumcount;
 	
 	// initialize data_yb with zeros
 	data_yb = Mat::zeros(Size(opw, oph), CV_64F);		//Size(cols,rows)		
 	data_yp = Mat::zeros(Size(opw, oph), CV_64F);
 	baccum = Mat::zeros(Size(opw, oph), CV_64F);
 	baccumcount = 0;
+	 
+	manualaccumcount = 0;
 	
 	Mat bscansave[100];		// allocate buffer to save frames, max 100
+	Mat bscanmanualsave[100];
+	Mat interferogramsave[100];
 	
 	int nr, nc;
 	
-	Mat m, opm, opmvector, bscan, bscandisp, bscantemp, bscantemp2, bscantransposed, chan[3];
+	Mat m, opm, opmvector, bscan, bscanlog, bscandb, bscandisp, bscandispmanual, bscantemp, bscantemp2, bscantemp3, bscantransposed, chan[3];
 	
 	//Mat bscanl, bscantempl, bscantransposedl;
-	Mat magI, cmagI;
+	Mat magI, cmagI, cmagImanual;
 	//Mat magIl, cmagIl;
 	double minbscan, maxbscan;
 	//double minbscanl, maxbscanl;
@@ -509,8 +531,10 @@ int main(int argc,char *argv[])
         fps = 0;
         
         indexi = 0;
+        manualindexi = 0;
         indextemp = 0;
         bscantransposed = Mat::zeros(Size(numfftpoints/2, oph), CV_64F);
+        manualaccum = Mat::zeros(Size(oph, numfftpoints/2), CV_64F); // this is transposed version
 	    //bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
 	    
 	    for (int p=0; p<(opw); p++)
@@ -551,6 +575,10 @@ int main(int argc,char *argv[])
 						 normalize(data_yb, data_yb, 0, 1, NORM_MINMAX);
 						 bkeypressed=0; 
 						 baccumcount=0;
+						 if(manualaveraging)
+						 {
+							 averages=1;
+						 }
 					 }
 						
 					}	
@@ -671,12 +699,14 @@ int main(int argc,char *argv[])
 					
 					transpose(bscantransposed, bscan); 
 				
-					bscan += Scalar::all(0.000001);   	// to prevent log of 0                 
-					log(bscan, bscan);					// switch to logarithmic scale
+					bscan += Scalar::all(0.000001);   	// to prevent log of 0  
+					
+					             
+					log(bscan, bscanlog);					// switch to logarithmic scale
 					//convert to dB = 10 log10(value), from the natural log above
-					bscan = bscan / 0.2303;
+					bscandb = bscanlog / 0.2303;
 					 
-					normalize(bscan, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
+					normalize(bscandb, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 					bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
 					applyColorMap(bscandisp, cmagI, COLORMAP_JET);
 					
@@ -705,14 +735,14 @@ int main(int argc,char *argv[])
 					
 					sprintf(filename, "bscan%03d",indexi);
 					outfile<< filename << "=";
-					outfile<<bscan;
+					outfile<<bscandb;
 					outfile<<";"<<std::endl;
 					
 #else
 					imwrite(filename, bscandisp);
 					imwrite(filenamec, cmagI);
 					sprintf(filename, "bscan%03d",indexi);
-					outfile << filename << bscan;
+					outfile << filename << bscandb;
 #endif		 	
 					if ( saveframes==1 )
 					{
@@ -741,9 +771,101 @@ int main(int argc,char *argv[])
 						}
 					}
 					
-					skeypressed=0; // if necessary, comment, do for bscanl also, then make it 0 	 
+					skeypressed=0; // if bscanl is necessary, comment this line, do for bscanl also, then make it 0 
+					
+					if(manualaveraging)
+					{
+						if (manualaccumcount < manualaverages)
+						{
+							accumulate(bscan, manualaccum);
+							
+							if ( saveframes==1 )
+							{
+								// save the individual frames before averaging also
+								bscan.copyTo(bscanmanualsave[manualaccumcount]);
+							}
+								
+							manualaccumcount++;
+						}
+						else
+						{
+							manualaccumcount = 0;
+							log(manualaccum, manualaccum);					// switch to logarithmic scale
+							//convert to dB = 10 log10(value), from the natural log above
+							manualaccum = manualaccum / 0.2303;
+							 
+							normalize(manualaccum, bscandispmanual, 0, 1, NORM_MINMAX);	// normalize the log plot for display
+							bscandispmanual.convertTo(bscandispmanual, CV_8UC1, 255.0);
+							applyColorMap(bscandispmanual, cmagImanual, COLORMAP_JET);
+							
+							imshow( "Bscanm", cmagImanual );
+							
+							// and save - similar code as in skeypressed
+							//////////////////////////////////////////
+							manualindexi++;
+							sprintf(filename, "bscanman%03d.png",manualindexi);
+							sprintf(filenamec, "bscanmanc%03d.png",manualindexi);
+							 
+					
+#ifdef __unix__
+							strcpy(pathname,dirname);
+							strcat(pathname,"/");
+							strcat(pathname,filename);
+							imwrite(pathname, bscandispmanual);
+							
+							strcpy(pathname,dirname);
+							strcat(pathname,"/");
+							strcat(pathname,filenamec);
+							imwrite(pathname, cmagImanual);
+							
+							sprintf(filename, "bscanman%03d",manualindexi);
+							outfile<< filename << "=";
+							outfile<<manualaccum;
+							outfile<<";"<<std::endl;
+					
+#else
+							imwrite(filename, bscandispmanual);
+							imwrite(filenamec, cmagImanual);
+							sprintf(filename, "bscanman%03d",manualindexi);
+							outfile << filename << manualaccum;
+#endif		 	
+							if ( saveframes==1 )
+							{
+								for (int ii = 0; ii<manualaverages; ii++)
+								{
+									// save the bscanmanualsave array after processing
+									//transpose(bscanmanualsave[ii], bscantemp2); - is already transposed
+									bscanmanualsave[ii].copyTo(bscantemp3);
+									bscantemp3 += Scalar::all(0.000001);   	// to prevent log of 0                 
+									log(bscantemp3, bscantemp3);					// switch to logarithmic scale
+									//convert to dB = 10 log10(value), from the natural log above
+									bscantemp3 = bscantemp3 / 0.2303;
+									normalize(bscantemp3, bscantemp3, 0, 1, NORM_MINMAX);	// normalize the log plot for save
+									bscantemp3.convertTo(bscantemp3, CV_8UC1, 255.0);		// imwrite needs 0-255 CV_8U
+									sprintf(filename, "bscanm%03d-%03d.png",manualindexi, ii);
+						 
+#ifdef __unix__
+									strcpy(pathname,dirname);
+									strcat(pathname,"/");
+									strcat(pathname,filename);
+									imwrite(pathname, bscantemp3);
+					
+#else
+									imwrite(filename, bscantemp3);
+#endif		 	
+
+								}
+									
+									
+									
+							} // end if saveframes
+							
+						}  //////////////end code to save manual////////////
 						
-					}
+					} // end if manual averaging
+						 
+						
+					} // end if skeypressed
 				
 					bscantransposed = Mat::zeros(Size(numfftpoints/2, oph), CV_64F);
 				}
@@ -951,6 +1073,7 @@ int main(int argc,char *argv[])
 					 
 							pkeypressed=1;
 					break; 
+					
 					
 				 
 				default:
