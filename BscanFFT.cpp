@@ -83,8 +83,11 @@ inline void savematasimage(char* p, char* d, char* f, Mat m)
 	strcat(p,".png");
 	imwrite(p, m);
 #else
-	strcat(f,".png");
-	imwrite(f, m);
+	strcpy(p,d );
+	strcat(p,"/");
+	strcat(p,f);
+	strcat(p,".png");
+	imwrite(p, m);
 #endif	
 	
 }
@@ -359,7 +362,11 @@ int main(int argc,char *argv[])
 #ifdef _WIN64
 	CreateDirectoryA(dirname, NULL);
 	cv::FileStorage outfile;
-	outfile.open("BscanFFT.xml", cv::FileStorage::WRITE);
+	sprintf(filename, "BscanFFT.xml");
+	strcpy(pathname,dirname);
+	strcat(pathname,"/");
+	strcat(pathname,filename);
+	outfile.open(pathname, cv::FileStorage::WRITE);
 #else
 	mkdir(dirname, 0755);
 #endif
@@ -763,8 +770,8 @@ int main(int argc,char *argv[])
 					{
 						sprintf(filename, "linearized%03d",indexi);
 						savematasdata(outfile, filename, data_ylin);
-						//normalize(data_ylin, bscantemp2, 0, 1, NORM_MINMAX);	// normalize the log plot for save
-						data_ylin.convertTo(bscantemp2, CV_8UC1, 1.0);		// imwrite needs 0-255 CV_8U
+						normalize(data_ylin, bscantemp2, 0, 255, NORM_MINMAX);	// normalize the log plot for save
+						bscantemp2.convertTo(bscantemp2, CV_8UC1, 1.0);		// imwrite needs 0-255 CV_8U
 						savematasimage(pathname, dirname, filename, bscantemp2);
 					}
 	 	
