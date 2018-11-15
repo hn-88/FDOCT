@@ -71,6 +71,44 @@
 
 using namespace cv;
 
+inline void savematasimage(char* p, char* d, char* f, Mat m)
+{
+	// saves a Mat m using imwrite as filename f appending .png, both windows and unix versions
+	// p=pathname, d=dirname, f=filename
+	
+#ifdef __unix__
+	strcpy(p,d );
+	strcat(p,"/");
+	strcat(p,f);
+	strcat(p,".png");
+	imwrite(p, m);
+#else
+	strcat(f,".png");
+	imwrite(f, m);
+#endif	
+	
+}
+
+
+	// the next function saves a Mat m as variablename f by dumping to outfile o, both windows and unix versions
+	
+#ifdef __unix__
+inline void savematasdata(std::ofstream& o, char* f, Mat m)
+{
+	// saves a Mat m as variable named f in Matlab m file format
+	o << f   << "=";
+	o << m;
+	o << ";" << std::endl;
+}
+					
+#else
+inline void savematasdata(cv::FileStorage& o, char* f, Mat m)
+{
+	// saves Mat m by serializing to xml as variable named f
+	o  << f  << m;
+}
+#endif
+
 int main(int argc,char *argv[])
 {
     int num = 0;
@@ -90,7 +128,7 @@ int main(int argc,char *argv[])
     int camgamma = 1, binvalue=1, normfactor=1, normfactorforsave=25;
     int numfftpoints=1024;
     bool saveframes = 0;
-    bool manualaveraging = 0;
+    bool manualaveraging = 0, saveinterferograms = 0;
     unsigned int manualaverages = 1;
      
     bool doneflag=0, skeypressed=0, bkeypressed=0, pkeypressed=0;
@@ -106,13 +144,9 @@ int main(int argc,char *argv[])
     std::string tempstring;
     char dirdescr[60];
     sprintf(dirdescr, "_");
-     
-	
-	
 	
 	//namedWindow("linearized",0); // 0 = WINDOW_NORMAL
 	//moveWindow("linearized", 20, 500);
-	
 	
 	//namedWindow("Bscanl",0); // 0 = WINDOW_NORMAL
 	//moveWindow("Bscanl", 400, 0);
@@ -164,6 +198,8 @@ int main(int argc,char *argv[])
 			infile >> manualaveraging;
 			infile >> tempstring;
 			infile >> manualaverages;
+			infile >> tempstring;
+			infile >> saveinterferograms;
 			infile.close();
 		  }
 
@@ -718,32 +754,20 @@ int main(int argc,char *argv[])
 					{
 						
 					indexi++;
-					sprintf(filename, "bscan%03d.png",indexi);
-					sprintf(filenamec, "bscanc%03d.png",indexi);
-					//normalize(bscan, bscan, 0, 255, NORM_MINMAX);
-					
-#ifdef __unix__
-					strcpy(pathname,dirname);
-					strcat(pathname,"/");
-					strcat(pathname,filename);
-					imwrite(pathname, bscandisp);
-					
-					strcpy(pathname,dirname);
-					strcat(pathname,"/");
-					strcat(pathname,filenamec);
-					imwrite(pathname, cmagI);
-					
 					sprintf(filename, "bscan%03d",indexi);
-					outfile<< filename << "=";
-					outfile<<bscandb;
-					outfile<<";"<<std::endl;
-					
-#else
-					imwrite(filename, bscandisp);
-					imwrite(filenamec, cmagI);
-					sprintf(filename, "bscan%03d",indexi);
-					outfile << filename << bscandb;
-#endif		 	
+					savematasdata(outfile, filename, bscandb);
+					savematasimage(pathname, dirname, filename, bscandisp);
+					sprintf(filenamec, "bscanc%03d",indexi);
+					savematasimage(pathname, dirname, filenamec, cmagI);
+					if(saveinterferograms)
+					{
+						sprintf(filename, "linearized%03d",indexi);
+						savematasdata(outfile, filename, data_ylin);
+						//normalize(data_ylin, bscantemp2, 0, 1, NORM_MINMAX);	// normalize the log plot for save
+						data_ylin.convertTo(bscantemp2, CV_8UC1, 1.0);		// imwrite needs 0-255 CV_8U
+						savematasimage(pathname, dirname, filename, bscantemp2);
+					}
+	 	
 					if ( saveframes==1 )
 					{
 						for (int ii = 0; ii<averages; ii++)
@@ -756,17 +780,9 @@ int main(int argc,char *argv[])
 							bscantemp2 = bscantemp2 / 0.2303;
 							normalize(bscantemp2, bscantemp2, 0, 1, NORM_MINMAX);	// normalize the log plot for save
 							bscantemp2.convertTo(bscantemp2, CV_8UC1, 255.0);		// imwrite needs 0-255 CV_8U
-							sprintf(filename, "bscan%03d-%03d.png",indexi, ii);
-						 
-#ifdef __unix__
-							strcpy(pathname,dirname);
-							strcat(pathname,"/");
-							strcat(pathname,filename);
-							imwrite(pathname, bscantemp2);
-					
-#else
-							imwrite(filename, bscantemp2);
-#endif		 	
+							sprintf(filename, "bscan%03d-%03d",indexi, ii);
+							savematasimage(pathname, dirname, filename, bscantemp2);
+	 	
 
 						}
 					}
@@ -803,32 +819,13 @@ int main(int argc,char *argv[])
 							// and save - similar code as in skeypressed
 							//////////////////////////////////////////
 							manualindexi++;
-							sprintf(filename, "bscanman%03d.png",manualindexi);
-							sprintf(filenamec, "bscanmanc%03d.png",manualindexi);
-							 
-					
-#ifdef __unix__
-							strcpy(pathname,dirname);
-							strcat(pathname,"/");
-							strcat(pathname,filename);
-							imwrite(pathname, bscandispmanual);
-							
-							strcpy(pathname,dirname);
-							strcat(pathname,"/");
-							strcat(pathname,filenamec);
-							imwrite(pathname, cmagImanual);
-							
 							sprintf(filename, "bscanman%03d",manualindexi);
-							outfile<< filename << "=";
-							outfile<<manualaccum;
-							outfile<<";"<<std::endl;
+							sprintf(filenamec, "bscanmanc%03d",manualindexi);
+							savematasdata(outfile, filename, manualaccum);
+							savematasimage(pathname, dirname, filename, bscandispmanual);
+							savematasimage(pathname, dirname, filenamec, cmagImanual);
+							
 					
-#else
-							imwrite(filename, bscandispmanual);
-							imwrite(filenamec, cmagImanual);
-							sprintf(filename, "bscanman%03d",manualindexi);
-							outfile << filename << manualaccum;
-#endif		 	
 							if ( saveframes==1 )
 							{
 								for (int ii = 0; ii<manualaverages; ii++)
@@ -842,18 +839,9 @@ int main(int argc,char *argv[])
 									bscantemp3 = bscantemp3 / 0.2303;
 									normalize(bscantemp3, bscantemp3, 0, 1, NORM_MINMAX);	// normalize the log plot for save
 									bscantemp3.convertTo(bscantemp3, CV_8UC1, 255.0);		// imwrite needs 0-255 CV_8U
-									sprintf(filename, "bscanm%03d-%03d.png",manualindexi, ii);
-						 
-#ifdef __unix__
-									strcpy(pathname,dirname);
-									strcat(pathname,"/");
-									strcat(pathname,filename);
-									imwrite(pathname, bscantemp3);
-					
-#else
-									imwrite(filename, bscantemp3);
-#endif		 	
-
+									sprintf(filename, "bscanm%03d-%03d",manualindexi, ii);
+									savematasimage(pathname, dirname, filename, bscantemp3);
+							
 								}
 									
 									
