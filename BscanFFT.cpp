@@ -77,12 +77,13 @@ inline Mat smoothmovavg(Mat sm, int sn)
 	// x(p) = ( x(p-n) + x(p-n+1) + .. + 2*x(p) + x(p+1) + ... + x(p+n) ) / 2*(n+1)
 	// The window size is truncated at the edges.
 	
-	// m needs to be CV_64FC1
-	
 	// can see https://docs.opencv.org/2.4/doc/tutorials/core/how_to_scan_images/how_to_scan_images.html#howtoscanimagesopencv
 	// for efficient ways 
 	
-	
+	// accept only double type matrices
+	// sm needs to be CV_64FC1
+    CV_Assert(sm.depth() == CV_64F);
+    
 	Mat sresult;
 	sm.copyTo(sresult);		// initializing size of result
 	
@@ -91,8 +92,13 @@ inline Mat smoothmovavg(Mat sm, int sn)
 	
 	double ssum;
 	int sindexi;
+	double* srcptr;
+	double* destptr;
+	
 	for(int si = 0; si < smaxrows; si++)
 	{
+		srcptr = sm.ptr<double>(si);
+		destptr = sresult.ptr<double>(si);
 		
 		for(int sj = 0; sj < smaxcols; sj++)
 		{
@@ -103,16 +109,16 @@ inline Mat smoothmovavg(Mat sm, int sn)
 				// address as m.at<double>(y, x); ie (row,column)
 				sindexi = sj + sk;
 				if ( (sindexi > -1) && (sindexi < smaxcols) )	// truncate window 
-					ssum = ssum + sm.at<double>(si,sindexi);
+					ssum = ssum + srcptr[sindexi];
 				else
-					ssum = ssum + sm.at<double>(si,sj);				// when window is truncated,
+					ssum = ssum + srcptr[sj];				// when window is truncated,
 															// weight of original point increases
 				 
 			}
 			
 			// we want to add m.at<double>(i,j) once again, since its weight is 2
-			ssum = ssum + sm.at<double>(si,sj);
-			sresult.at<double>(si,sj) = ssum / 2 / (sn+1);
+			ssum = ssum + srcptr[sj];
+			destptr[sj] = ssum / 2 / (sn+1);
 			
 		}
 			 
