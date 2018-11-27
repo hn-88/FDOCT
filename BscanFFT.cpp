@@ -109,7 +109,7 @@ inline Mat smoothmovavg(Mat sm, int sn)
 				// address as m.at<double>(y, x); ie (row,column)
 				sindexi = sj + sk;
 				if ( (sindexi > -1) && (sindexi < smaxcols) )	// truncate window 
-					ssum = ssum + srcptr[sindexi];
+					ssum = ssum + srcptr[sindexi];		//equivalent to ssum = ssum + sm.at<double>(si,sindexi);
 				else
 					ssum = ssum + srcptr[sj];				// when window is truncated,
 															// weight of original point increases
@@ -118,7 +118,7 @@ inline Mat smoothmovavg(Mat sm, int sn)
 			
 			// we want to add m.at<double>(i,j) once again, since its weight is 2
 			ssum = ssum + srcptr[sj];
-			destptr[sj] = ssum / 2 / (sn+1);
+			destptr[sj] = ssum / 2 / (sn+1);		//equivalent to sresult.at<double>(si,sj) = ssum / (2 * (sn+1) );
 			
 		}
 			 
