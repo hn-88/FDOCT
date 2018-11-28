@@ -57,18 +57,120 @@
 #include <sys/stat.h>
 // this is for mkdir
 
- 
+
 
 #include <opencv2/opencv.hpp>
 // used the above include when imshow was being shown as not declared
 // removing
 // #include <opencv/cv.h>
 // #include <opencv/highgui.h>
- 
+
 
 using namespace cv;
 
-int main(int argc,char *argv[])
+inline Mat smoothmovavg(Mat sm, int sn)
+{
+	// smooths each row of Mat m using 2n+1 point weighted moving average
+	// x(p) = ( x(p-n) + x(p-n+1) + .. + 2*x(p) + x(p+1) + ... + x(p+n) ) / 2*(n+1)
+	// The window size is truncated at the edges.
+	
+	// can see https://docs.opencv.org/2.4/doc/tutorials/core/how_to_scan_images/how_to_scan_images.html#howtoscanimagesopencv
+	// for efficient ways 
+	
+	// accept only double type matrices
+	// sm needs to be CV_64FC1
+    CV_Assert(sm.depth() == CV_64F);
+    
+	Mat sresult;
+	sm.copyTo(sresult);		// initializing size of result
+	
+	int smaxcols = sm.cols;
+	int smaxrows = sm.rows;
+	
+	double ssum;
+	int sindexi;
+	double* srcptr;
+	double* destptr;
+	
+	for(int si = 0; si < smaxrows; si++)
+	{
+		srcptr = sm.ptr<double>(si);
+		destptr = sresult.ptr<double>(si);
+		
+		for(int sj = 0; sj < smaxcols; sj++)
+		{
+			ssum=0;
+			
+			for (int sk = -sn; sk < (sn+1); sk++)
+			{
+				// address as m.at<double>(y, x); ie (row,column)
+				sindexi = sj + sk;
+				if ( (sindexi > -1) && (sindexi < smaxcols) )	// truncate window 
+					ssum = ssum + srcptr[sindexi];		//equivalent to ssum = ssum + sm.at<double>(si,sindexi);
+				else
+					ssum = ssum + srcptr[sj];				// when window is truncated,
+															// weight of original point increases
+				 
+			}
+			
+			// we want to add m.at<double>(i,j) once again, since its weight is 2
+			ssum = ssum + srcptr[sj];
+			destptr[sj] = ssum / 2 / (sn+1);		//equivalent to sresult.at<double>(si,sj) = ssum / (2 * (sn+1) );
+			
+		}
+			 
+	}
+
+	return sresult; 
+	 
+ 
+
+}
+
+
+inline void savematasimage(char* p, char* d, char* f, Mat m)
+{
+	// saves a Mat m using imwrite as filename f appending .png, both windows and unix versions
+	// w=winpath, p=pathname, d=dirname, f=filename
+
+#ifdef __unix__
+	strcpy(p, d);
+	strcat(p, "/");
+	strcat(p, f);
+	strcat(p, ".png");
+	imwrite(p, m);
+#else
+	
+	strcpy(p, d);
+	strcat(p, "\\");		// imwrite needs path with \\ separators, not /, on windows
+	strcat(p, f);
+	strcat(p, ".png");
+	imwrite(p, m);
+#endif	
+
+}
+
+
+// the next function saves a Mat m as variablename f by dumping to outfile o, both windows and unix versions
+
+#ifdef __unix__
+inline void savematasdata(std::ofstream& o, char* f, Mat m)
+{
+	// saves a Mat m as variable named f in Matlab m file format
+	o << f << "=";
+	o << m;
+	o << ";" << std::endl;
+}
+
+#else
+inline void savematasdata(cv::FileStorage& o, char* f, Mat m)
+{
+	// saves Mat m by serializing to xml as variable named f
+	o << f << m;
+}
+#endif
+
+int main(int argc, char *argv[])
 {
     int num = 0;
     qhyccd_handle *camhandle=NULL;
@@ -76,19 +178,23 @@ int main(int argc,char *argv[])
     char id[32];
     //char camtype[16];
     int found = 0;
-    unsigned int w,h,bpp=8,channels, cambitdepth=16, numofframes=100; 
-    unsigned int numofm1slices=10, numofm2slices=10, firstaccum, secondaccum;
-    unsigned int offsetx=0, offsety=0;
-    unsigned int indexi, averages=1, opw, oph;
-    int  indextemp, indextempl;
+	unsigned int w, h, bpp = 8, channels, cambitdepth = 16, numofframes = 100;
+	unsigned int numofm1slices = 10, numofm2slices = 10, firstaccum, secondaccum;
+	unsigned int offsetx = 0, offsety = 0;
+	unsigned int indexi, manualindexi, averages = 1, opw, oph;
+	int  indextemp, indextempl;
 
+
+	int camtime = 1, camgain = 1, camspeed = 1, cambinx = 2, cambiny = 2, usbtraffic = 10;
+	int camgamma = 1, binvalue = 1, normfactor = 1, normfactorforsave = 25;
+	int numfftpoints = 1024;
+	int numdisplaypoints = 512;
+	bool saveframes = 0;
+	bool manualaveraging = 0, saveinterferograms = 0;
+	unsigned int manualaverages = 1;
+	int movavgn = 0;
      
-    int camtime = 1,camgain = 1,camspeed = 1,cambinx = 2,cambiny = 2,usbtraffic = 10;
-    int camgamma = 1, binvalue=1, normfactor=1, normfactorforsave=25;
-    int numfftpoints=1024;
-    
-     
-    bool doneflag=0, skeypressed=0, bkeypressed=0, pkeypressed=0;
+	bool doneflag = 0, skeypressed = 0, bkeypressed = 0, pkeypressed = 0;
     
     w=640;
     h=480;
@@ -101,13 +207,6 @@ int main(int argc,char *argv[])
     char dirdescr[60];
     sprintf(dirdescr, "_");
      
-	namedWindow("show",0); // 0 = WINDOW_NORMAL
-	moveWindow("show", 20, 0);
-	 
-	namedWindow("Bscan",0); // 0 = WINDOW_NORMAL
-	moveWindow("Bscan", 800, 0);
-	
-	
 	//namedWindow("linearized",0); // 0 = WINDOW_NORMAL
 	//moveWindow("linearized", 20, 500);
 	
@@ -156,12 +255,34 @@ int main(int argc,char *argv[])
 			infile >> averages;
 			infile >> tempstring;
 			infile >> numfftpoints;
+		infile >> tempstring;
+		infile >> saveframes;
+		infile >> tempstring;
+		infile >> manualaveraging;
+		infile >> tempstring;
+		infile >> manualaverages;
+		infile >> tempstring;
+		infile >> saveinterferograms;
+		infile >> tempstring;
+		infile >> movavgn;
+		infile >> tempstring;
+		infile >> numdisplaypoints;
 			infile.close();
 		  }
 
 		  else std::cout << "Unable to open ini file, using defaults.";
 		  
-			
+	namedWindow("show", 0); // 0 = WINDOW_NORMAL
+	moveWindow("show", 20, 0);
+
+	namedWindow("Bscan", 0); // 0 = WINDOW_NORMAL
+	moveWindow("Bscan", 800, 0);
+
+	if (manualaveraging)
+	{
+		namedWindow("Bscanm", 0); // 0 = WINDOW_NORMAL
+		moveWindow("Bscanm", 800, 400);
+	}
 	   
 	   
     /////////////////////////////////////
@@ -181,17 +302,26 @@ int main(int argc,char *argv[])
 	Mat data_yp( oph, opw, CV_64F );
 	Mat padded, paddedn;
 	Mat barthannwin( 1, opw, CV_64F );		// the Mat constructor Mat(rows,columns,type);
+	Mat baccum, manualaccum;
+	int baccumcount, manualaccumcount;
 	
 	// initialize data_yb with zeros
 	data_yb = Mat::zeros(Size(opw, oph), CV_64F);		//Size(cols,rows)	
 	data_yp = Mat::zeros(Size(opw, oph), CV_64F);
-	// 	
+	baccum = Mat::zeros(Size(opw, oph), CV_64F);
+	baccumcount = 0;
+
+	manualaccumcount = 0;
+
+	Mat bscansave[100];		// allocate buffer to save frames, max 100
+	Mat bscanmanualsave[100];
+	Mat interferogramsave[100];
 	 
 	int nr, nc;
 	
-	Mat m, opm, opmvector, bscan, bscandisp, bscantemp, bscantransposed, chan[3];
+	Mat m, opm, opmvector, bscan, bscanlog, bscandb, bscandisp, bscandispmanual, bscantemp, bscantemp2, bscantemp3, bscantransposed, chan[3];
 	//Mat bscanl, bscantempl, bscantransposedl;
-	Mat magI, cmagI;
+	Mat magI, cmagI, cmagImanual;
 	//Mat magIl, cmagIl;
 	double minbscan, maxbscan;
 	//double minbscanl, maxbscanl;
@@ -221,7 +351,7 @@ int main(int argc,char *argv[])
 	slopes = Mat::zeros(cv::Size(data_y.rows, data_y.cols), CV_64F);
 	nearestkindex = Mat::zeros(cv::Size( 1, numfftpoints ), CV_32S);
 	
-	resizeWindow("Bscan", oph, numfftpoints);		// (width,height)
+	resizeWindow("Bscan", oph, numdisplaypoints);		// (width,height)
 	
 	for (indextemp=0; indextemp<(data_y.cols); indextemp++) 
 	{
@@ -295,16 +425,20 @@ int main(int argc,char *argv[])
 #ifdef _WIN64
 	CreateDirectoryA(dirname, NULL);
 	cv::FileStorage outfile;
-	outfile.open("BscanFFT.xml", cv::FileStorage::WRITE);
+	sprintf(filename, "BscanFFT.xml");
+	strcpy(pathname, dirname);
+	strcat(pathname, "\\");
+	strcat(pathname, filename);
+	outfile.open(pathname, cv::FileStorage::WRITE);
 #else
 	mkdir(dirname, 0755);
 #endif
 
 #ifdef __unix__	
 	sprintf(filename, "BscanFFT.m");
-	strcpy(pathname,dirname);
-	strcat(pathname,"/");
-	strcat(pathname,filename);
+	strcpy(pathname, dirname);
+	strcat(pathname, "/");
+	strcat(pathname, filename);
 	std::ofstream outfile(pathname);
 #endif
     
@@ -504,8 +638,10 @@ int main(int argc,char *argv[])
         fps = 0;
         
         indexi = 0;
+		manualindexi = 0;
         indextemp = 0;
         bscantransposed = Mat::zeros(Size(numfftpoints/2, oph), CV_64F);
+		manualaccum = Mat::zeros(Size(oph, numdisplaypoints), CV_64F); // this is transposed version
 	    //bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
 	    
 	    for (int p=0; p<(opw); p++)
@@ -530,6 +666,10 @@ int main(int argc,char *argv[])
              //take only one channel
             imshow("show",opm);
             opm.copyTo(data_y);
+				opm.convertTo(data_y, CV_64F);	// initialize data_y
+				
+				// smoothing by weighted moving average
+				data_y = smoothmovavg(data_y, movavgn);
             //transpose(opm, data_y); 		// void transpose(InputArray src, OutputArray dst)
 											// because we actually want the columns and not rows
 											// using DFT_ROWS
@@ -577,8 +717,8 @@ int main(int argc,char *argv[])
                 // apodize 
                 // data_y = ( (data_y - data_yp) ./ data_yb ).*window
                 data_y.convertTo(data_y, CV_64F);
-                data_yb.convertTo(data_yb, CV_64F);
-                data_yp.convertTo(data_yp, CV_64F);
+				normalize(data_y, data_y, 0, 1, NORM_MINMAX);
+				//data_yb.convertTo(data_yb, CV_64F);
                 data_y =  (data_y - data_yp) / data_yb  ;
                 
                 for (int p=0; p<(data_y.rows); p++)
@@ -616,8 +756,8 @@ int main(int argc,char *argv[])
 								* slopes.at<double>(p,nearestkindex.at<int>(0,q) );	
 						//printf("data_ylin(%d,%d)=%f \n",p,q,data_ylin.at<double>(p,q));
 					}
-					data_ylin.at<double>(p,0) = 0;
-					data_ylin.at<double>(p,numfftpoints) = 0;
+					//data_ylin.at<double>(p, 0) = 0;
+					//data_ylin.at<double>(p, numfftpoints) = 0;
 					
 				}
 
@@ -632,7 +772,8 @@ int main(int argc,char *argv[])
                 //normalize(data_ylin, paddedn, 0, 1, NORM_MINMAX);
                 //imshow("linearized", paddedn);
                
-
+				// smoothing by weighted moving average
+				//data_ylin = smoothmovavg(data_ylin, 5);
 				Mat planes[] = {Mat_<float>(data_ylin), Mat::zeros(data_ylin.size(), CV_32F)};
 				Mat complexI;
 				merge(planes, 2, complexI);         // Add to the expanded another plane with zeros
@@ -647,7 +788,7 @@ int main(int argc,char *argv[])
 
 				if(indextemp < averages)
 				{
-					bscantemp = magI.colRange(0,nc/2);
+					bscantemp = magI.colRange(0, numdisplaypoints);
 					bscantemp.convertTo(bscantemp,CV_64F);
 					accumulate(bscantemp, bscantransposed);
 					indextemp++;
@@ -658,11 +799,11 @@ int main(int argc,char *argv[])
 					transpose(bscantransposed, bscan); 
 					
 					bscan += Scalar::all(0.000001);   	// to prevent log of 0                 
-					log(bscan, bscan);					// switch to logarithmic scale
-					//convert to dB = 10 log10(value), from the natural log above
-					bscan = bscan / 0.2303;
-					 
-					normalize(bscan, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
+					log(bscan, bscanlog);					// switch to logarithmic scale
+															//convert to dB = 20 log10(value), from the natural log above
+					bscandb = 20.0 * bscanlog / 2.303;
+
+					normalize(bscandb, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 					bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
 					applyColorMap(bscandisp, cmagI, COLORMAP_JET);
 					
@@ -930,15 +1071,15 @@ int main(int argc,char *argv[])
 	//} // end of if found 
         
 #ifdef __unix__
-        outfile<<"% Parameters were - camgain, camtime, bpp, w , h , camspeed, usbtraffic, binvalue"<<std::endl;
-				outfile<<"% "<<camgain; 
-				outfile<<", "<<camtime;  
-				outfile<<", "<<bpp; 
-				outfile<<", "<<w ; 
-				outfile<<", "<<h ; 
-				outfile<<", "<<camspeed ;
-				outfile<<", "<<usbtraffic ;
-				outfile<<", "<<binvalue ;
+	outfile << "% Parameters were - camgain, camtime, bpp, w , h , camspeed, usbtraffic, binvalue" << std::endl;
+	outfile << "% " << camgain;
+	outfile << ", " << camtime;
+	outfile << ", " << bpp;
+	outfile << ", " << w;
+	outfile << ", " << h;
+	outfile << ", " << camspeed;
+	outfile << ", " << usbtraffic;
+	outfile << ", " << binvalue;
 				
 
 
