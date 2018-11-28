@@ -198,6 +198,9 @@ int main(int argc, char *argv[])
 	int movavgn = 0;
 
 	bool doneflag = 0, skeypressed = 0, bkeypressed = 0, pkeypressed = 0;
+	double lambdamin, lambdamax;
+	lambdamin = 816e-9;
+	lambdamax = 884e-9;
 
 
 	w = 640;
@@ -270,6 +273,10 @@ int main(int argc, char *argv[])
 		infile >> movavgn;
 		infile >> tempstring;
 		infile >> numdisplaypoints;
+		infile >> tempstring;
+		infile >> lambdamin;
+		infile >> tempstring;
+		infile >> lambdamax;
 		infile.close();
 	}
 
@@ -333,17 +340,11 @@ int main(int argc, char *argv[])
 	Mat lambdas, k, klinear;
 	Mat diffk, slopes, fractionalk, nearestkindex;
 
-	double lambdamin, lambdamax, kmin, kmax;
+	double kmin, kmax;
 	double pi = 3.141592653589793;
 
 	double minVal, maxVal, pixVal;
 	//minMaxLoc( m, &minVal, &maxVal, &minLoc, &maxLoc );
-
-	// assuming current data_y's each row goes from
-	// lambda_min to lambda_max
-	// 830 nm to 870 nm,
-	lambdamin = 816e-9;
-	lambdamax = 884e-9;
 
 	double deltalambda = (lambdamax - lambdamin) / data_y.cols;
 
