@@ -823,8 +823,8 @@ int main(int argc, char *argv[])
 
 
 					log(bscan, bscanlog);					// switch to logarithmic scale
-															//convert to dB = 10 log10(value), from the natural log above
-					bscandb = bscanlog / 0.2303;
+															//convert to dB = 20 log10(value), from the natural log above
+					bscandb = 20.0 * bscanlog / 2.303;
 
 					normalize(bscandb, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 					bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
