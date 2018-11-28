@@ -191,6 +191,7 @@ int main(int argc, char *argv[])
 	int camtime = 1, camgain = 1, camspeed = 1, cambinx = 2, cambiny = 2, usbtraffic = 10;
 	int camgamma = 1, binvalue = 1, normfactor = 1, normfactorforsave = 25;
 	int numfftpoints = 1024;
+	int numdisplaypoints = 512;
 	bool saveframes = 0;
 	bool manualaveraging = 0, saveinterferograms = 0;
 	unsigned int manualaverages = 1;
@@ -267,6 +268,8 @@ int main(int argc, char *argv[])
 		infile >> saveinterferograms;
 		infile >> tempstring;
 		infile >> movavgn;
+		infile >> tempstring;
+		infile >> numdisplaypoints;
 		infile.close();
 	}
 
@@ -352,7 +355,7 @@ int main(int argc, char *argv[])
 	slopes = Mat::zeros(cv::Size(data_y.rows, data_y.cols), CV_64F);
 	nearestkindex = Mat::zeros(cv::Size(1, numfftpoints), CV_32S);
 
-	resizeWindow("Bscan", oph, numfftpoints);		// (width,height)
+	resizeWindow("Bscan", oph, numdisplaypoints);		// (width,height)
 
 	for (indextemp = 0; indextemp<(data_y.cols); indextemp++)
 	{
@@ -640,8 +643,8 @@ int main(int argc, char *argv[])
 		indexi = 0;
 		manualindexi = 0;
 		indextemp = 0;
-		bscantransposed = Mat::zeros(Size(numfftpoints / 2, oph), CV_64F);
-		manualaccum = Mat::zeros(Size(oph, numfftpoints / 2), CV_64F); // this is transposed version
+		bscantransposed = Mat::zeros(Size(numdisplaypoints, oph), CV_64F);
+		manualaccum = Mat::zeros(Size(oph, numdisplaypoints), CV_64F); // this is transposed version
 																	   //bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
 
 		for (int p = 0; p<(opw); p++)
@@ -666,7 +669,7 @@ int main(int argc, char *argv[])
 				opm.convertTo(data_y, CV_64F);	// initialize data_y
 				
 				// smoothing by weighted moving average
-				data_y = smoothmovavg(data_y, 5);
+				data_y = smoothmovavg(data_y, movavgn);
 				
 				 
 				
@@ -798,7 +801,7 @@ int main(int argc, char *argv[])
 
 				if (indextemp < averages)
 				{
-					bscantemp = magI.colRange(0, nc / 2);
+					bscantemp = magI.colRange(0, numdisplaypoints);
 					bscantemp.convertTo(bscantemp, CV_64F);
 					accumulate(bscantemp, bscantransposed);
 					if (saveframes == 1)
