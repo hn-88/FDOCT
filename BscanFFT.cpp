@@ -224,6 +224,8 @@ int main(int argc, char *argv[])
 	char filename[20];
 	char filenamec[20];
 	char pathname[140];
+	char lambdamaxstr[40];
+	char lambdaminstr[40];
 	struct tm *timenow;
 
 	time_t now = time(NULL);
@@ -274,10 +276,13 @@ int main(int argc, char *argv[])
 		infile >> tempstring;
 		infile >> numdisplaypoints;
 		infile >> tempstring;
-		infile >> lambdamin;
+		infile >> lambdaminstr;
 		infile >> tempstring;
-		infile >> lambdamax;
+		infile >> lambdamaxstr;
 		infile.close();
+		
+		lambdamin = atof(lambdaminstr);
+		lambdamax = atof(lambdamaxstr);
 	}
 
 	else std::cout << "Unable to open ini file, using defaults.";
@@ -826,6 +831,9 @@ int main(int argc, char *argv[])
 					log(bscan, bscanlog);					// switch to logarithmic scale
 															//convert to dB = 20 log10(value), from the natural log above
 					bscandb = 20.0 * bscanlog / 2.303;
+					
+					bscandb.row(4).copyTo(bscandb.row(1));	// masking out the DC in the display
+                    bscandb.row(4).copyTo(bscandb.row(0));
 
 					normalize(bscandb, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 					bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
@@ -861,8 +869,8 @@ int main(int argc, char *argv[])
 								transpose(bscansave[ii], bscantemp2);
 								bscantemp2 += Scalar::all(0.000001);   	// to prevent log of 0                 
 								log(bscantemp2, bscantemp2);					// switch to logarithmic scale
-																				//convert to dB = 10 log10(value), from the natural log above
-								bscantemp2 = bscantemp2 / 0.2303;
+																				//convert to dB = 20 log10(value), from the natural log above
+								bscantemp2 = 20.0 * bscantemp2 / 2.303;
 								normalize(bscantemp2, bscantemp2, 0, 1, NORM_MINMAX);	// normalize the log plot for save
 								bscantemp2.convertTo(bscantemp2, CV_8UC1, 255.0);		// imwrite needs 0-255 CV_8U
 								sprintf(filename, "bscan%03d-%03d", indexi, ii);
@@ -892,8 +900,8 @@ int main(int argc, char *argv[])
 							{
 								manualaccumcount = 0;
 								log(manualaccum, manualaccum);					// switch to logarithmic scale
-																				//convert to dB = 10 log10(value), from the natural log above
-								manualaccum = manualaccum / 0.2303;
+																				//convert to dB = 20 log10(value), from the natural log above
+								manualaccum = 20.0 * manualaccum / 2.303;
 
 								normalize(manualaccum, bscandispmanual, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 								bscandispmanual.convertTo(bscandispmanual, CV_8UC1, 255.0);
@@ -920,8 +928,8 @@ int main(int argc, char *argv[])
 										bscanmanualsave[ii].copyTo(bscantemp3);
 										bscantemp3 += Scalar::all(0.000001);   	// to prevent log of 0                 
 										log(bscantemp3, bscantemp3);					// switch to logarithmic scale
-																						//convert to dB = 10 log10(value), from the natural log above
-										bscantemp3 = bscantemp3 / 0.2303;
+																						//convert to dB = 20 log10(value), from the natural log above
+										bscantemp3 = 20.0 * bscantemp3 / 2.303;
 										normalize(bscantemp3, bscantemp3, 0, 1, NORM_MINMAX);	// normalize the log plot for save
 										bscantemp3.convertTo(bscantemp3, CV_8UC1, 255.0);		// imwrite needs 0-255 CV_8U
 										sprintf(filename, "bscanm%03d-%03d", manualindexi, ii);
