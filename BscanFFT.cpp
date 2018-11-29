@@ -807,7 +807,7 @@ int main(int argc, char *argv[])
 
 				if (indextemp < averages)
 				{
-					bscantemp = magI.colRange(0, numdisplaypoints);
+					bscantemp = magI.colRange(0, numdisplaypoints-1);
 					bscantemp.convertTo(bscantemp, CV_64F);
 					accumulate(bscantemp, bscantransposed);
 					if (saveframes == 1)
