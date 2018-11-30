@@ -649,8 +649,8 @@ int main(int argc, char *argv[])
 		indexi = 0;
 		manualindexi = 0;
 		indextemp = 0;
-		bscantransposed = Mat::zeros(Size(numdisplaypoints, oph), CV_64F);
-		manualaccum = Mat::zeros(Size(oph, numdisplaypoints), CV_64F); // this is transposed version
+		bscantransposed = Mat::zeros(Size(numfftpoints/2, oph), CV_64F);
+		manualaccum = Mat::zeros(Size(oph, numfftpoints/2), CV_64F); // this is transposed version
 																	   //bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
 
 		for (int p = 0; p<(opw); p++)
@@ -807,7 +807,7 @@ int main(int argc, char *argv[])
 
 				if (indextemp < averages)
 				{
-					bscantemp = magI.colRange(0, numdisplaypoints-1);
+					bscantemp = magI.colRange(0, numfftpoints/2);
 					bscantemp.convertTo(bscantemp, CV_64F);
 					accumulate(bscantemp, bscantransposed);
 					if (saveframes == 1)
@@ -838,6 +838,7 @@ int main(int argc, char *argv[])
 					normalize(bscandb, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 					bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
 					applyColorMap(bscandisp, cmagI, COLORMAP_JET);
+					cmagI = cmagI.rowRange(0, numdisplaypoints);
 
 					imshow("Bscan", cmagI);
 
@@ -917,6 +918,8 @@ int main(int argc, char *argv[])
 								savematasdata(outfile, filename, manualaccum);
 								savematasimage(pathname, dirname, filename, bscandispmanual);
 								savematasimage(pathname, dirname, filenamec, cmagImanual);
+								
+								manualaccum = Mat::zeros(Size(oph, numfftpoints/2), CV_64F);
 
 
 								if (saveframes == 1)
