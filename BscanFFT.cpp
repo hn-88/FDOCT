@@ -669,6 +669,14 @@ int main(int argc, char *argv[])
 
 			if (ret == QHYCCD_SUCCESS)
 			{
+				// save the raw frame
+				if (saveinterferograms)
+				{
+					// save m to buffer
+					// buffer is saved to disk when skeypressed
+					// need to have one active buffer and one old buffer
+				}
+				
 				resize(m, opm, Size(), 1.0 / binvalue, 1.0 / binvalue, INTER_AREA);	// binning (averaging)
 				imshow("show", opm);
 				
