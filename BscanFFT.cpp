@@ -134,7 +134,7 @@ inline Mat smoothmovavg(Mat sm, int sn)
 inline void savematasimage(char* p, char* d, char* f, Mat m)
 {
 	// saves a Mat m using imwrite as filename f appending .png, both windows and unix versions
-	// w=winpath, p=pathname, d=dirname, f=filename
+	// p=pathname, d=dirname, f=filename
 
 #ifdef __unix__
 	strcpy(p, d);
@@ -327,10 +327,17 @@ int main(int argc, char *argv[])
 	baccumcount = 0;
 
 	manualaccumcount = 0;
+	
+	Mat bscansave0[100];		// allocate buffer to save frames, max 100
+	Mat bscansave1[100];		// one buffer is active while other is saved on skeypressed
 
-	Mat bscansave[100];		// allocate buffer to save frames, max 100
-	Mat bscanmanualsave[100];
-	Mat interferogramsave[100];
+	Mat bscanmanualsave0[100];
+	Mat bscanmanualsave1[100];
+
+	Mat interferogramsave0[100];
+	Mat interferogramsave1[100];
+	
+	bool zeroisactive = 1;
 
 	int nr, nc;
 
@@ -669,13 +676,7 @@ int main(int argc, char *argv[])
 
 			if (ret == QHYCCD_SUCCESS)
 			{
-				// save the raw frame
-				if (saveinterferograms)
-				{
-					// save m to buffer
-					// buffer is saved to disk when skeypressed
-					// need to have one active buffer and one old buffer
-				}
+				
 				
 				resize(m, opm, Size(), 1.0 / binvalue, 1.0 / binvalue, INTER_AREA);	// binning (averaging)
 				imshow("show", opm);
@@ -698,11 +699,36 @@ int main(int argc, char *argv[])
 					if (baccumcount < averages)
 					{
 						accumulate(data_y, baccum);
+						// save the raw frame to buffer
+						if (saveinterferograms)
+						{
+							// save m to active buffer
+							// inactive buffer is saved to disk when skeypressed
+							if (zeroisactive)
+								m.copyTo(interferogramsave0[baccumcount]);
+							else
+								m.copyTo(interferogramsave1[baccumcount]);
+							
+						}
 						baccumcount++;
 					}
 					else
 					{
-						baccum.copyTo(data_yb);		// saves the "background" or source spectrum	
+						baccum.copyTo(data_yb);		// saves the "background" or source spectrum
+						if (saveinterferograms)
+						{
+							// inactive buffer is saved to disk when bkeypressed
+							// and all accumulation is done
+							for (int ii = 0; ii<averages; ii++)
+							{
+								sprintf(filename, "rawframeb%03d-%03d", indexi,ii);
+								if (zeroisactive)
+									savematasimage(pathname, dirname, filename, interferogramsave1[ii]);
+								else
+									savematasimage(pathname, dirname, filename, interferogramsave0[ii]);
+							}
+							
+						}	
 						normalize(data_yb, data_yb, 0.1, 1, NORM_MINMAX);
 						bkeypressed = 0;
 						baccumcount = 0;
@@ -719,6 +745,20 @@ int main(int argc, char *argv[])
 				{
 
 					data_y.copyTo(data_yp);		// saves the pi shifted or J0 spectrum	
+					if (saveinterferograms)
+						{
+							// inactive buffer is saved to disk when bkeypressed
+							// and all accumulation is done
+							for (int ii = 0; ii<averages; ii++)
+							{
+								sprintf(filename, "rawframep%03d-%03d", indexi,ii);
+								if (zeroisactive)
+									savematasimage(pathname, dirname, filename, interferogramsave1[ii]);
+								else
+									savematasimage(pathname, dirname, filename, interferogramsave0[ii]);
+							}
+							
+						}	
 					data_yp.convertTo(data_yp, CV_64F);
 					normalize(data_yp, data_yp, 0, 1, NORM_MINMAX);
 					pkeypressed = 0;
@@ -821,7 +861,10 @@ int main(int argc, char *argv[])
 					if (saveframes == 1)
 					{
 						// save the individual frames before averaging also
-						bscantemp.copyTo(bscansave[indextemp]);
+						if (zeroisactive)
+						bscantemp.copyTo(bscansave0[indextemp]);
+						else
+						bscantemp.copyTo(bscansave1[indextemp]);
 					}
 
 					indextemp++;
@@ -830,7 +873,8 @@ int main(int argc, char *argv[])
 				else
 				{
 					indextemp = 0;
-
+					// we will also toggle the buffers, at the end of this 'else' code block
+					
 					transpose(bscantransposed, bscan);
 
 					bscan += Scalar::all(0.000001);   	// to prevent log of 0  
@@ -875,7 +919,10 @@ int main(int argc, char *argv[])
 							for (int ii = 0; ii<averages; ii++)
 							{
 								// save the bscansave array after processing
-								transpose(bscansave[ii], bscantemp2);
+								if (zeroisactive)
+									transpose(bscansave1[ii], bscantemp2);	// don't touch the active buffer
+								else
+									transpose(bscansave0[ii], bscantemp2);
 								bscantemp2 += Scalar::all(0.000001);   	// to prevent log of 0                 
 								log(bscantemp2, bscantemp2);					// switch to logarithmic scale
 																				//convert to dB = 20 log10(value), from the natural log above
@@ -884,6 +931,21 @@ int main(int argc, char *argv[])
 								bscantemp2.convertTo(bscantemp2, CV_8UC1, 255.0);		// imwrite needs 0-255 CV_8U
 								sprintf(filename, "bscan%03d-%03d", indexi, ii);
 								savematasimage(pathname, dirname, filename, bscantemp2);
+								
+								if (saveinterferograms)
+								{
+									// inactive buffer is saved to disk when skeypressed
+									// and all accumulation is done
+									for (int ii = 0; ii<averages; ii++)
+									{
+										sprintf(filename, "rawframe%03d-%03d", indexi,ii);
+										if (zeroisactive)
+											savematasimage(pathname, dirname, filename, interferogramsave1[ii]);
+										else
+											savematasimage(pathname, dirname, filename, interferogramsave0[ii]);
+									}
+									
+								}	
 
 
 							}
@@ -900,7 +962,10 @@ int main(int argc, char *argv[])
 								if (saveframes == 1)
 								{
 									// save the individual frames before averaging also
-									bscan.copyTo(bscanmanualsave[manualaccumcount]);
+									if (zeroisactive)
+										bscan.copyTo(bscanmanualsave0[manualaccumcount]);
+									else
+										bscan.copyTo(bscanmanualsave1[manualaccumcount]);
 								}
 
 								manualaccumcount++;
@@ -936,7 +1001,11 @@ int main(int argc, char *argv[])
 									{
 										// save the bscanmanualsave array after processing
 										//transpose(bscanmanualsave[ii], bscantemp2); - is already transposed
-										bscanmanualsave[ii].copyTo(bscantemp3);
+										if (zeroisactive)
+											bscanmanualsave1[ii].copyTo(bscantemp3);		// save only the inactive buffer
+										else
+											bscanmanualsave0[ii].copyTo(bscantemp3);
+											
 										bscantemp3 += Scalar::all(0.000001);   	// to prevent log of 0                 
 										log(bscantemp3, bscantemp3);					// switch to logarithmic scale
 																						//convert to dB = 20 log10(value), from the natural log above
@@ -960,7 +1029,14 @@ int main(int argc, char *argv[])
 					} // end if skeypressed
 
 					bscantransposed = Mat::zeros(Size(numfftpoints / 2, oph), CV_64F);
-				}
+					
+					// toggle the buffers
+					if (zeroisactive)
+						zeroisactive=0;
+					else
+						zeroisactive=1;
+						
+				} // end else (if indextemp < averages)
 
 				//////////////////////////////////////////////////////
 				// a bscan without linearization, sanity check.
