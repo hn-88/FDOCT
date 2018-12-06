@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
 	double lambdamin, lambdamax;
 	lambdamin = 816e-9;
 	lambdamax = 884e-9;
-
+	int mediann = 5;
 
 	w = 640;
 	h = 480;
@@ -279,6 +279,8 @@ int main(int argc, char *argv[])
 		infile >> lambdaminstr;
 		infile >> tempstring;
 		infile >> lambdamaxstr;
+		infile >> tempstring;
+		infile >> mediann;
 		infile.close();
 		
 		lambdamin = atof(lambdaminstr);
@@ -676,10 +678,15 @@ int main(int argc, char *argv[])
 
 			if (ret == QHYCCD_SUCCESS)
 			{
-				
+				//median filter while the numbers are still int
+				if (mediann>0)
+					medianBlur(m, m, mediann);
 				
 				resize(m, opm, Size(), 1.0 / binvalue, 1.0 / binvalue, INTER_AREA);	// binning (averaging)
 				imshow("show", opm);
+				
+				
+				
 				
 				opm.convertTo(data_y, CV_64F);	// initialize data_y
 				
