@@ -691,7 +691,8 @@ int main(int argc, char *argv[])
 				opm.convertTo(data_y, CV_64F);	// initialize data_y
 				
 				// smoothing by weighted moving average
-				data_y = smoothmovavg(data_y, movavgn);
+				if (movavgn > 0)
+					data_y = smoothmovavg(data_y, movavgn);
 				
 				 
 				
@@ -894,10 +895,11 @@ int main(int argc, char *argv[])
 					bscandb.row(4).copyTo(bscandb.row(1));	// masking out the DC in the display
                     bscandb.row(4).copyTo(bscandb.row(0));
 
-					normalize(bscandb, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
+					bscandisp=bscandb.rowRange(0, numdisplaypoints);
+					normalize(bscandisp, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 					bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
 					applyColorMap(bscandisp, cmagI, COLORMAP_JET);
-					cmagI = cmagI.rowRange(0, numdisplaypoints);
+					//cmagI = cmagI.rowRange(0, numdisplaypoints);
 
 					imshow("Bscan", cmagI);
 
