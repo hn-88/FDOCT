@@ -11,7 +11,9 @@
 
 /*
 *
-* Testing display from 2 cameras simultaneously
+* Testing display from 2 cameras simultaneously - DOESN'T WORK WELL with QHY cameras
+* So, better to use two different executables, and run one after the other,
+* NOT simultaneously. Simultaneously -> fps drops dramatically to 1 or 2. 
 *
 * ESC key quits
 *
