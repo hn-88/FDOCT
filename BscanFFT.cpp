@@ -22,6 +22,8 @@
 * Captures (background) spectrum on receipt of b key
 * Captures pi shifted or J0 frame on receipt of p key
 * Saves frames on receipt of s key
+* Saves J0 null frame for thresholding on receipt of j key
+* Clears the J0 thresholding mask on c key
 *
 * Do manual frame by frame averaging with ini file option
 *
@@ -70,6 +72,13 @@
 
 
 using namespace cv;
+
+inline void makeonlypositive(Mat& src, Mat& dst)
+{
+	// from https://stackoverflow.com/questions/48313249/opencv-convert-all-negative-values-to-zero
+    dst = max(src, 0);
+     
+}
 
 inline Mat smoothmovavg(Mat sm, int sn)
 {
@@ -198,6 +207,8 @@ int main(int argc, char *argv[])
 	int movavgn = 0;
 
 	bool doneflag = 0, skeypressed = 0, bkeypressed = 0, pkeypressed = 0;
+	bool jthresholding, jkeypressed = 0, ckeypressed = 0;
+	Mat jmask;
 	double lambdamin, lambdamax;
 	lambdamin = 816e-9;
 	lambdamax = 884e-9;
@@ -332,6 +343,8 @@ int main(int argc, char *argv[])
 	
 	Mat bscansave0[100];		// allocate buffer to save frames, max 100
 	Mat bscansave1[100];		// one buffer is active while other is saved on skeypressed
+	
+	Mat jscansave;		// to save j frames
 
 	Mat bscanmanualsave0[100];
 	Mat bscanmanualsave1[100];
@@ -897,11 +910,41 @@ int main(int argc, char *argv[])
 
 					bscandisp=bscandb.rowRange(0, numdisplaypoints);
 					normalize(bscandisp, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
-					bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
+					
+					if (jthresholding)
+					{
+						// create the mask
+						Mat jthreshdiff = bscandisp*255 - jscansave;
+						Mat positivediff;
+						jthreshdiff.copyTo(positivediff);		// just to initialize the Mat
+						makeonlypositive(jthreshdiff, positivediff);
+						positivediff.convertTo(positivediff, CV_8UC1, 1.0);
+						threshold(positivediff, jmask, 5, 255, THRESH_BINARY);
+						// bitwise AND the image with the mask
+						bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
+						bitwise_and(bscandisp, jmask, bscandisp);
+					}
+					else
+					{
+						bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
+					}
 					applyColorMap(bscandisp, cmagI, COLORMAP_JET);
-					//cmagI = cmagI.rowRange(0, numdisplaypoints);
-
+					
 					imshow("Bscan", cmagI);
+					
+					if (jkeypressed == 1)
+					{
+						bscandisp.convertTo(jscansave, CV_64FC1, 1.0);
+						jthresholding = 1;			// setting the boolean flag
+						jkeypressed = 0;
+					}
+					
+					if (ckeypressed == 1)
+					{
+						// clear the thresholding boolean
+						jthresholding = 0;
+						ckeypressed = 0;
+					}
 
 
 					if (skeypressed == 1)
@@ -914,6 +957,15 @@ int main(int argc, char *argv[])
 						savematasimage(pathname, dirname, filename, bscandisp);
 						sprintf(filenamec, "bscanc%03d", indexi);
 						savematasimage(pathname, dirname, filenamec, cmagI);
+						
+						if (jthresholding)
+						{
+							// save the respective j image also
+							sprintf(filename, "jscan%03d", indexi);
+							savematasdata(outfile, filename, jscansave);
+							savematasimage(pathname, dirname, filename, jscansave);
+							
+						}
 						if (saveinterferograms)
 						{
 							sprintf(filename, "linearized%03d", indexi);
@@ -1249,6 +1301,16 @@ int main(int argc, char *argv[])
 				case 'p':
 
 					pkeypressed = 1;
+					break;
+					
+				case 'j':
+
+					jkeypressed = 1;
+					break;
+					
+				case 'c':
+
+					ckeypressed = 1;
 					break;
 
 
