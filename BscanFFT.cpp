@@ -80,6 +80,34 @@ inline void makeonlypositive(Mat& src, Mat& dst)
      
 }
 
+inline Mat zeropadrowwise(Mat sm, int sn)
+{
+	// increase fft points sn times 
+	// newnumcols = numcols*sn;
+	// by zero padding, fft and then inv fft
+	
+	// returns CV_32F
+	
+	// guided by https://stackoverflow.com/questions/10269456/inverse-fourier-transformation-in-opencv
+	// inspired by Drexler & Fujimoto 2nd ed Section 5.1.10
+	
+	Mat origimage;
+	Mat fouriertransform;
+	Mat inversefouriertransform;
+	
+	int numrows = sm.rows;
+	int numcols = sm.cols;
+	int newnumcols = numcols*sn;
+	
+	copyMakeBorder( sm, origimage, 0, 0, floor((newnumcols-numcols)/2), floor((newnumcols-numcols)/2), BORDER_CONSTANT, 0 );		// this does the zero pad
+	
+	origimage.convertTo(origimage, CV_32F);
+	
+	dft(origimage, fouriertransform, DFT_SCALE|DFT_COMPLEX_OUTPUT|DFT_ROWS);
+	dft(fouriertransform, inversefouriertransform, DFT_INVERSE|DFT_REAL_OUTPUT|DFT_ROWS);
+	return inversefouriertransform;
+}
+
 inline Mat smoothmovavg(Mat sm, int sn)
 {
 	// smooths each row of Mat m using 2n+1 point weighted moving average
@@ -213,6 +241,7 @@ int main(int argc, char *argv[])
 	lambdamin = 816e-9;
 	lambdamax = 884e-9;
 	int mediann = 5;
+	bool increasefftpoints = 0;
 
 	w = 640;
 	h = 480;
@@ -292,6 +321,8 @@ int main(int argc, char *argv[])
 		infile >> lambdamaxstr;
 		infile >> tempstring;
 		infile >> mediann;
+		infile >> tempstring;
+		infile >> increasefftpoints;
 		infile.close();
 		
 		lambdamin = atof(lambdaminstr);
@@ -357,6 +388,7 @@ int main(int argc, char *argv[])
 	int nr, nc;
 
 	Mat m, opm, opmvector, bscan, bscanlog, bscandb, bscandisp, bscandispmanual, bscantemp, bscantemp2, bscantemp3, bscantransposed, chan[3];
+	Mat mraw;
 
 	//Mat bscanl, bscantempl, bscantransposedl;
 	Mat magI, cmagI, cmagImanual;
@@ -687,13 +719,15 @@ int main(int argc, char *argv[])
 
 		while (1)		//camera frames acquisition loop
 		{
-			ret = GetQHYCCDLiveFrame(camhandle, &w, &h, &bpp, &channels, m.data);
+			ret = GetQHYCCDLiveFrame(camhandle, &w, &h, &bpp, &channels, mraw.data);
 
 			if (ret == QHYCCD_SUCCESS)
 			{
 				//median filter while the numbers are still int
 				if (mediann>0)
-					medianBlur(m, m, mediann);
+					medianBlur(mraw, m, mediann);
+				else
+					mraw.copyTo(m);
 				
 				resize(m, opm, Size(), 1.0 / binvalue, 1.0 / binvalue, INTER_AREA);	// binning (averaging)
 				imshow("show", opm);
@@ -726,9 +760,9 @@ int main(int argc, char *argv[])
 							// save m to active buffer
 							// inactive buffer is saved to disk when skeypressed
 							if (zeroisactive)
-								m.copyTo(interferogramsave0[baccumcount]);
+								mraw.copyTo(interferogramsave0[baccumcount]);
 							else
-								m.copyTo(interferogramsave1[baccumcount]);
+								mraw.copyTo(interferogramsave1[baccumcount]);
 							
 						}
 						baccumcount++;
