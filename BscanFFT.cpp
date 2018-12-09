@@ -241,7 +241,7 @@ int main(int argc, char *argv[])
 	lambdamin = 816e-9;
 	lambdamax = 884e-9;
 	int mediann = 5;
-	bool increasefftpoints = 0;
+	int increasefftpointsmultiplier = 0;
 
 	w = 640;
 	h = 480;
@@ -322,7 +322,7 @@ int main(int argc, char *argv[])
 		infile >> tempstring;
 		infile >> mediann;
 		infile >> tempstring;
-		infile >> increasefftpoints;
+		infile >> increasefftpointsmultiplier;
 		infile.close();
 		
 		lambdamin = atof(lambdaminstr);
@@ -350,6 +350,11 @@ int main(int argc, char *argv[])
 	cambitdepth = bpp;
 	opw = w / binvalue;
 	oph = h / binvalue;
+	float lambda0 = (lambdamin + lambdamax) / 2;
+	float lambdabw = lambdamax - lambdamin;
+	float zplambdabw = lambdabw*increasefftpointsmultiplier;
+	float zplambdamin = lambda0 - zplambdabw/2;
+	float zplambdamax = lambda0 + zplambdabw/2;
 
 	Mat ROI;
 	Mat plot_result;
@@ -406,26 +411,39 @@ int main(int argc, char *argv[])
 	//minMaxLoc( m, &minVal, &maxVal, &minLoc, &maxLoc );
 
 	double deltalambda = (lambdamax - lambdamin) / data_y.cols;
-
-
-	lambdas = Mat::zeros(cv::Size(1, data_y.cols), CV_64F);		//Size(cols,rows)
+	
+	 
 	klinear = Mat::zeros(cv::Size(1, numfftpoints), CV_64F);
-	diffk = Mat::zeros(cv::Size(1, data_y.cols), CV_64F);
 	fractionalk = Mat::zeros(cv::Size(1, numfftpoints), CV_64F);
-	slopes = Mat::zeros(cv::Size(data_y.rows, data_y.cols), CV_64F);
 	nearestkindex = Mat::zeros(cv::Size(1, numfftpoints), CV_32S);
+		
+	if (increasefftpointsmultiplier > 1)
+	{
+		// the bw also increases
+		lambdas = Mat::zeros(cv::Size(1, increasefftpointsmultiplier*data_y.cols), CV_64F);		//Size(cols,rows)
+		diffk = Mat::zeros(cv::Size(1, increasefftpointsmultiplier*data_y.cols), CV_64F);
+		slopes = Mat::zeros(cv::Size(data_y.rows, increasefftpointsmultiplier*data_y.cols), CV_64F);
+		 
+	}
+	else
+	{
+		lambdas = Mat::zeros(cv::Size(1, data_y.cols), CV_64F);		//Size(cols,rows)
+		diffk = Mat::zeros(cv::Size(1, data_y.cols), CV_64F);
+		slopes = Mat::zeros(cv::Size(data_y.rows, data_y.cols), CV_64F);
+		
+	}
 
 	resizeWindow("Bscan", oph, numdisplaypoints);		// (width,height)
 
-	for (indextemp = 0; indextemp<(data_y.cols); indextemp++)
+	for (indextemp = 0; indextemp<(increasefftpointsmultiplier*data_y.cols); indextemp++)
 	{
 		// lambdas = linspace(830e-9, 870e-9, data_y.cols)
 		lambdas.at<double>(0, indextemp) = lambdamin + indextemp * deltalambda;
 
 	}
 	k = 2 * pi / lambdas;
-	kmin = 2 * pi / (lambdamax - deltalambda);
-	kmax = 2 * pi / lambdamin;
+	kmin = 2 * pi / (zplambdamax - deltalambda);
+	kmax = 2 * pi / zplambdamin;
 	double deltak = (kmax - kmin) / numfftpoints;
 
 	for (indextemp = 0; indextemp<(numfftpoints); indextemp++)
@@ -442,7 +460,7 @@ int main(int argc, char *argv[])
 	//}
 
 
-	for (indextemp = 1; indextemp<(data_y.cols); indextemp++)
+	for (indextemp = 1; indextemp<(increasefftpointsmultiplier*data_y.cols); indextemp++)
 	{
 		//find the diff of the non-linear ks
 		// since this is a decreasing series, RHS is (i-1) - (i)
@@ -784,7 +802,7 @@ int main(int argc, char *argv[])
 							}
 							
 						}	
-						normalize(data_yb, data_yb, 0.1, 1, NORM_MINMAX);
+						normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
 						bkeypressed = 0;
 						baccumcount = 0;
 						if (manualaveraging)
@@ -849,9 +867,13 @@ int main(int argc, char *argv[])
 					Scalar meanval = mean(data_y.row(p));
 					data_y.row(p) = data_y.row(p) - meanval(0);		// Only the first value of the scalar is useful for us
 
-																	//windowing
+					//windowing
 					multiply(data_y.row(p), barthannwin, data_y.row(p));
 				}
+				
+				//increasing number of points by zero padding
+				if (increasefftpointsmultiplier > 1)
+					data_y = zeropadrowwise(data_y, increasefftpointsmultiplier);
 
 
 				// interpolate to linear k space
