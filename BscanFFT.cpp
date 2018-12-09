@@ -86,7 +86,7 @@ inline Mat zeropadrowwise(Mat sm, int sn)
 	// newnumcols = numcols*sn;
 	// by zero padding, fft and then inv fft
 	
-	// returns CV_32F
+	// returns CV_64F
 	
 	// guided by https://stackoverflow.com/questions/10269456/inverse-fourier-transformation-in-opencv
 	// inspired by Drexler & Fujimoto 2nd ed Section 5.1.10
@@ -105,6 +105,7 @@ inline Mat zeropadrowwise(Mat sm, int sn)
 	
 	dft(origimage, fouriertransform, DFT_SCALE|DFT_COMPLEX_OUTPUT|DFT_ROWS);
 	dft(fouriertransform, inversefouriertransform, DFT_INVERSE|DFT_REAL_OUTPUT|DFT_ROWS);
+	inversefouriertransform.convertTo(inversefouriertransform, CV_64F);
 	return inversefouriertransform;
 }
 
@@ -235,13 +236,13 @@ int main(int argc, char *argv[])
 	int movavgn = 0;
 
 	bool doneflag = 0, skeypressed = 0, bkeypressed = 0, pkeypressed = 0;
-	bool jthresholding, jkeypressed = 0, ckeypressed = 0;
+	bool jthresholding = 0, jkeypressed = 0, ckeypressed = 0;
 	Mat jmask;
 	double lambdamin, lambdamax;
 	lambdamin = 816e-9;
 	lambdamax = 884e-9;
 	int mediann = 5;
-	int increasefftpointsmultiplier = 0;
+	int increasefftpointsmultiplier = 1;
 
 	w = 640;
 	h = 480;
@@ -679,10 +680,12 @@ int main(int argc, char *argv[])
 		{
 
 			m = Mat::zeros(cv::Size(w, h), CV_8U);
+			mraw = Mat::zeros(cv::Size(w, h), CV_8U);
 		}
 		else // is 16 bit
 		{
 			m = Mat::zeros(cv::Size(w, h), CV_16U);
+			mraw = Mat::zeros(cv::Size(w, h), CV_16U);
 		}
 
 
@@ -1247,7 +1250,7 @@ int main(int argc, char *argv[])
 				////////////////////////////////////////////
 
 
-				key = waitKey(3); // wait 30 milliseconds for keypress
+				key = waitKey(30); // wait 30 milliseconds for keypress
 								  // max frame rate at 1280x960 is 30 fps => 33 milliseconds
 
 				switch (key)
