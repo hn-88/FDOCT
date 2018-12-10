@@ -68,6 +68,42 @@
 
 using namespace cv;
 
+inline void makeonlypositive(Mat& src, Mat& dst)
+{
+	// from https://stackoverflow.com/questions/48313249/opencv-convert-all-negative-values-to-zero
+    dst = max(src, 0);
+     
+}
+
+inline Mat zeropadrowwise(Mat sm, int sn)
+{
+	// increase fft points sn times 
+	// newnumcols = numcols*sn;
+	// by zero padding, fft and then inv fft
+	
+	// returns CV_64F
+	
+	// guided by https://stackoverflow.com/questions/10269456/inverse-fourier-transformation-in-opencv
+	// inspired by Drexler & Fujimoto 2nd ed Section 5.1.10
+	
+	Mat origimage;
+	Mat fouriertransform;
+	Mat inversefouriertransform;
+	
+	int numrows = sm.rows;
+	int numcols = sm.cols;
+	int newnumcols = numcols*sn;
+	
+	copyMakeBorder( sm, origimage, 0, 0, floor((newnumcols-numcols)/2), floor((newnumcols-numcols)/2), BORDER_CONSTANT, 0 );		// this does the zero pad
+	
+	origimage.convertTo(origimage, CV_32F);
+	
+	dft(origimage, fouriertransform, DFT_SCALE|DFT_COMPLEX_OUTPUT|DFT_ROWS);
+	dft(fouriertransform, inversefouriertransform, DFT_INVERSE|DFT_REAL_OUTPUT|DFT_ROWS);
+	inversefouriertransform.convertTo(inversefouriertransform, CV_64F);
+	return inversefouriertransform;
+}
+
 inline Mat smoothmovavg(Mat sm, int sn)
 {
 	// smooths each row of Mat m using 2n+1 point weighted moving average
@@ -131,7 +167,7 @@ inline Mat smoothmovavg(Mat sm, int sn)
 inline void savematasimage(char* p, char* d, char* f, Mat m)
 {
 	// saves a Mat m using imwrite as filename f appending .png, both windows and unix versions
-	// w=winpath, p=pathname, d=dirname, f=filename
+	// p=pathname, d=dirname, f=filename
 
 #ifdef __unix__
 	strcpy(p, d);
@@ -193,20 +229,27 @@ int main(int argc, char *argv[])
 	bool manualaveraging = 0, saveinterferograms = 0;
 	unsigned int manualaverages = 1;
 	int movavgn = 0;
-     
+
 	bool doneflag = 0, skeypressed = 0, bkeypressed = 0, pkeypressed = 0;
-    
-    w=640;
-    h=480;
-    
-    int  fps, key, bscanat;
-    int t_start,t_end;
-    
-    std::ifstream infile("BscanFFT.ini");
-    std::string tempstring;
-    char dirdescr[60];
-    sprintf(dirdescr, "_");
-     
+	bool jthresholding = 0, jkeypressed = 0, ckeypressed = 0;
+	Mat jmask;
+	double lambdamin, lambdamax;
+	lambdamin = 816e-9;
+	lambdamax = 884e-9;
+	int mediann = 5;
+	int increasefftpointsmultiplier = 1;
+
+	w = 640;
+	h = 480;
+
+	int  fps, key, bscanat;
+	int t_start, t_end;
+
+	std::ifstream infile("BscanFFT.ini");
+	std::string tempstring;
+	char dirdescr[60];
+	sprintf(dirdescr, "_");
+
 	//namedWindow("linearized",0); // 0 = WINDOW_NORMAL
 	//moveWindow("linearized", 20, 500);
 	
@@ -217,44 +260,46 @@ int main(int argc, char *argv[])
 	char dirname[80];
 	char filename[20];
 	char filenamec[20];
-	char pathname[40];
+	char pathname[140];
+	char lambdamaxstr[40];
+	char lambdaminstr[40];
 	struct tm *timenow;
 	
 	time_t now = time(NULL);
-	
-    // inputs from ini file
-    if (infile.is_open())
-		  {
-			
-			infile >> tempstring;
-			infile >> tempstring;
-			infile >> tempstring;
-			// first three lines of ini file are comments
-			infile >> camgain  ;
-			infile >> tempstring;
-			infile >> camtime  ;
-			infile >> tempstring;
-			infile >> bpp  ;
-			infile >> tempstring;
-			infile >> w  ;
-			infile >> tempstring;
-			infile >> h  ;
-			infile >> tempstring;
-			infile >> camspeed  ;
-			infile >> tempstring;
-			infile >> cambinx  ;
-			infile >> tempstring;
-			infile >> cambiny  ;
-			infile >> tempstring;
-			infile >> usbtraffic;
-			infile >> tempstring;
-			infile >> binvalue;
-			infile >> tempstring;
-			infile >> dirdescr;
-			infile >> tempstring;
-			infile >> averages;
-			infile >> tempstring;
-			infile >> numfftpoints;
+
+	// inputs from ini file
+	if (infile.is_open())
+	{
+
+		infile >> tempstring;
+		infile >> tempstring;
+		infile >> tempstring;
+		// first three lines of ini file are comments
+		infile >> camgain;
+		infile >> tempstring;
+		infile >> camtime;
+		infile >> tempstring;
+		infile >> bpp;
+		infile >> tempstring;
+		infile >> w;
+		infile >> tempstring;
+		infile >> h;
+		infile >> tempstring;
+		infile >> camspeed;
+		infile >> tempstring;
+		infile >> cambinx;
+		infile >> tempstring;
+		infile >> cambiny;
+		infile >> tempstring;
+		infile >> usbtraffic;
+		infile >> tempstring;
+		infile >> binvalue;
+		infile >> tempstring;
+		infile >> dirdescr;
+		infile >> tempstring;
+		infile >> averages;
+		infile >> tempstring;
+		infile >> numfftpoints;
 		infile >> tempstring;
 		infile >> saveframes;
 		infile >> tempstring;
@@ -267,8 +312,19 @@ int main(int argc, char *argv[])
 		infile >> movavgn;
 		infile >> tempstring;
 		infile >> numdisplaypoints;
-			infile.close();
-		  }
+		infile >> tempstring;
+		infile >> lambdaminstr;
+		infile >> tempstring;
+		infile >> lambdamaxstr;
+		infile >> tempstring;
+		infile >> mediann;
+		infile >> tempstring;
+		infile >> increasefftpointsmultiplier;
+		infile.close();
+		
+		lambdamin = atof(lambdaminstr);
+		lambdamax = atof(lambdamaxstr);
+	}
 
 		  else std::cout << "Unable to open ini file, using defaults.";
 		  
@@ -285,12 +341,17 @@ int main(int argc, char *argv[])
 	}
 	   
 	   
-    /////////////////////////////////////
-    // init camera, variables, etc
-    
-    cambitdepth = bpp;
-    opw = w/binvalue;
-	oph = h/binvalue;
+	/////////////////////////////////////
+	// init camera, variables, etc
+
+	cambitdepth = bpp;
+	opw = w / binvalue;
+	oph = h / binvalue;
+	float lambda0 = (lambdamin + lambdamax) / 2;
+	float lambdabw = lambdamax - lambdamin;
+	float zplambdabw = lambdabw*increasefftpointsmultiplier;
+	float zplambdamin = lambda0 - zplambdabw/2;
+	float zplambdamax = lambda0 + zplambdabw/2;
 	
 	Mat ROI;
 	Mat plot_result;
@@ -312,14 +373,24 @@ int main(int argc, char *argv[])
 	baccumcount = 0;
 
 	manualaccumcount = 0;
+	
+	Mat bscansave0[100];		// allocate buffer to save frames, max 100
+	Mat bscansave1[100];		// one buffer is active while other is saved on skeypressed
+	
+	Mat jscansave;		// to save j frames
 
-	Mat bscansave[100];		// allocate buffer to save frames, max 100
-	Mat bscanmanualsave[100];
-	Mat interferogramsave[100];
+	Mat bscanmanualsave0[100];
+	Mat bscanmanualsave1[100];
+
+	Mat interferogramsave0[100];
+	Mat interferogramsave1[100];
+	
+	bool zeroisactive = 1;
 	 
 	int nr, nc;
 	
 	Mat m, opm, opmvector, bscan, bscanlog, bscandb, bscandisp, bscandispmanual, bscantemp, bscantemp2, bscantemp3, bscantransposed, chan[3];
+	Mat mraw;
 	//Mat bscanl, bscantempl, bscantransposedl;
 	Mat magI, cmagI, cmagImanual;
 	//Mat magIl, cmagIl;
@@ -329,74 +400,80 @@ int main(int argc, char *argv[])
 	Mat lambdas, k, klinear;
 	Mat diffk, slopes, fractionalk, nearestkindex;
 	
-	double lambdamin, lambdamax, kmin, kmax;
+	double kmin, kmax;
 	double pi = 3.141592653589793;
 	
 	double minVal, maxVal, pixVal;
 	//minMaxLoc( m, &minVal, &maxVal, &minLoc, &maxLoc );
-	
-	// assuming current data_y's each row goes from
-	// lambda_min to lambda_max
-	// 830 nm to 870 nm,
-	lambdamin = 816e-9;
-	lambdamax = 884e-9;
-	
+
 	double deltalambda = (lambdamax - lambdamin ) / data_y.cols;
 	
-	
-	lambdas = Mat::zeros(cv::Size(1, data_y.cols), CV_64F);		//Size(cols,rows)
+	 
 	klinear = Mat::zeros(cv::Size(1, numfftpoints), CV_64F);
-	diffk = Mat::zeros(cv::Size(1, data_y.cols), CV_64F);
 	fractionalk = Mat::zeros(cv::Size(1, numfftpoints), CV_64F);
-	slopes = Mat::zeros(cv::Size(data_y.rows, data_y.cols), CV_64F);
-	nearestkindex = Mat::zeros(cv::Size( 1, numfftpoints ), CV_32S);
-	
+	nearestkindex = Mat::zeros(cv::Size(1, numfftpoints), CV_32S);
+		
+	if (increasefftpointsmultiplier > 1)
+	{
+		// the bw also increases
+		lambdas = Mat::zeros(cv::Size(1, increasefftpointsmultiplier*data_y.cols), CV_64F);		//Size(cols,rows)
+		diffk = Mat::zeros(cv::Size(1, increasefftpointsmultiplier*data_y.cols), CV_64F);
+		slopes = Mat::zeros(cv::Size(data_y.rows, increasefftpointsmultiplier*data_y.cols), CV_64F);
+		 
+	}
+	else
+	{
+		lambdas = Mat::zeros(cv::Size(1, data_y.cols), CV_64F);		//Size(cols,rows)
+		diffk = Mat::zeros(cv::Size(1, data_y.cols), CV_64F);
+		slopes = Mat::zeros(cv::Size(data_y.rows, data_y.cols), CV_64F);
+		
+	}
 	resizeWindow("Bscan", oph, numdisplaypoints);		// (width,height)
 	
-	for (indextemp=0; indextemp<(data_y.cols); indextemp++) 
+	for (indextemp = 0; indextemp<(increasefftpointsmultiplier*data_y.cols); indextemp++)
 	{
 		// lambdas = linspace(830e-9, 870e-9, data_y.cols)
-		lambdas.at<double>(0,indextemp) = lambdamin + indextemp*deltalambda;
-	
+		lambdas.at<double>(0, indextemp) = lambdamin + indextemp * deltalambda;
+
 	}
-	k = 2*pi / lambdas;
-	kmin = 2*pi/(lambdamax-deltalambda);
-	kmax = 2*pi/lambdamin;
+	k = 2 * pi / lambdas;
+	kmin = 2 * pi / (zplambdamax - deltalambda);
+	kmax = 2 * pi / zplambdamin;
 	double deltak = (kmax - kmin) / numfftpoints;
-	
-	for (indextemp=0; indextemp<(numfftpoints); indextemp++) 
+
+	for (indextemp = 0; indextemp<(numfftpoints); indextemp++)
 	{
 		// klinear = linspace(kmin, kmax, numfftpoints)
-		klinear.at<double>(0,indextemp) = kmin + (indextemp+1)*deltak;
+		klinear.at<double>(0, indextemp) = kmin + (indextemp + 1)*deltak;
 	}
-	
-	
-	
+
+
+
 	//for (indextemp=0; indextemp<(data_y.cols); indextemp++) 
 	//{
 		//printf("k=%f, klin=%f\n", k.at<double>(0,indextemp), klinear.at<double>(0,indextemp));
 	//}
 	
 	
-	for (indextemp=1; indextemp<(data_y.cols); indextemp++) 
+	for (indextemp = 1; indextemp<(increasefftpointsmultiplier*data_y.cols); indextemp++)
 	{
 		//find the diff of the non-linear ks
 		// since this is a decreasing series, RHS is (i-1) - (i)
-		diffk.at<double>(0,indextemp) = k.at<double>(0,indextemp-1) - k.at<double>(0,indextemp);
+		diffk.at<double>(0, indextemp) = k.at<double>(0, indextemp - 1) - k.at<double>(0, indextemp);
 		//printf("i=%d, diffk=%f \n", indextemp, diffk.at<double>(0,indextemp));
 	}
 	// and initializing the first point separately
-	diffk.at<double>(0,0) = diffk.at<double>(0,1);
-	
-	for (int f=0; f < numfftpoints; f++)
+	diffk.at<double>(0, 0) = diffk.at<double>(0, 1);
+
+	for (int f = 0; f < numfftpoints; f++)
 	{
 		// find the index of the nearest k value, less than the linear k
 		for (indextemp = 0; indextemp < data_y.cols; indextemp++)
 		{
 			//printf("Before if k=%f,klin=%f \n",k.at<double>(0,indextemp),klinear.at<double>(0,f));
-			if (k.at<double>(0,indextemp) < klinear.at<double>(0,f) ) 
+			if (k.at<double>(0, indextemp) < klinear.at<double>(0, f))
 			{
-				nearestkindex.at<int>(0,f) = indextemp;
+				nearestkindex.at<int>(0, f) = indextemp;
 				//printf("After if k=%f,klin=%f,nearestkindex=%d\n",k.at<double>(0,indextemp),klinear.at<double>(0,f),nearestkindex.at<int>(0,f));
 				break;
 				
@@ -407,10 +484,10 @@ int main(int argc, char *argv[])
 		
 	}		// end f loop
 	
-	for (int f=0; f < numfftpoints; f++)
+	for (int f = 0; f < numfftpoints; f++)
 	{
-				// now find the fractional amount by which the linearized k value is greater than the next lowest k
-		fractionalk.at<double>(0,f) = (klinear.at<double>(0,f) - k.at<double>(0,nearestkindex.at<int>(0,f)) ) / diffk.at<double>(0,nearestkindex.at<int>(0,f));
+		// now find the fractional amount by which the linearized k value is greater than the next lowest k
+		fractionalk.at<double>(0, f) = (klinear.at<double>(0, f) - k.at<double>(0, nearestkindex.at<int>(0, f))) / diffk.at<double>(0, nearestkindex.at<int>(0, f));
 		//printf("f=%d, klinear=%f, diffk=%f, k=%f, nearesti=%d\n",f, klinear.at<double>(0,f), diffk.at<double>(0,nearestkindex.at<int>(0,f)), k.at<double>(0,nearestkindex.at<int>(0,f)),nearestkindex.at<int>(0,f) );
 		//printf("f=%d, fractionalk=%f\n",f, fractionalk.at<double>(0,f));
 	}
@@ -640,11 +717,11 @@ int main(int argc, char *argv[])
         indexi = 0;
 		manualindexi = 0;
         indextemp = 0;
-        bscantransposed = Mat::zeros(Size(numfftpoints/2, oph), CV_64F);
-		manualaccum = Mat::zeros(Size(oph, numdisplaypoints), CV_64F); // this is transposed version
+		bscantransposed = Mat::zeros(Size(numfftpoints/2, oph), CV_64F);
+		manualaccum = Mat::zeros(Size(oph, numfftpoints/2), CV_64F); // this is transposed version
 	    //bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
 	    
-	    for (int p=0; p<(opw); p++)
+		for (int p = 0; p<(opw); p++)
 		{
 			// create modified Bartlett-Hann window
 			// https://in.mathworks.com/help/signal/ref/barthannwin.html
@@ -657,18 +734,25 @@ int main(int argc, char *argv[])
         while(1)		//camera frames acquisition loop
         { 
             ret = QHYCCD_SUCCESS;//GetQHYCCDLiveFrame(camhandle,&w,&h,&bpp,&channels,m.data);
-            m = imread("imgi.png");
-            split(m,chan);	// saved image is 3 channel, we want only one channel
+            mraw = imread("imgi.png");
+            split(mraw,chan);	// saved image is 3 channel, we want only one channel
              
             if (ret == QHYCCD_SUCCESS)  
             {
+								//median filter while the numbers are still int
+				if (mediann>0)
+					medianBlur(chan[0], m, mediann);
+				else
+					chan[0].copyTo(m);
+
+				
             resize(chan[0], opm, Size(), 1.0/binvalue, 1.0/binvalue, INTER_AREA);	// binning (averaging)
              //take only one channel
             imshow("show",opm);
-            opm.copyTo(data_y);
 				opm.convertTo(data_y, CV_64F);	// initialize data_y
 				
 				// smoothing by weighted moving average
+				if (movavgn > 0)
 				data_y = smoothmovavg(data_y, movavgn);
             //transpose(opm, data_y); 		// void transpose(InputArray src, OutputArray dst)
 											// because we actually want the columns and not rows
@@ -731,6 +815,9 @@ int main(int argc, char *argv[])
 					multiply(data_y.row(p), barthannwin, data_y.row(p)); 
 				}			
 				
+				//increasing number of points by zero padding
+				if (increasefftpointsmultiplier > 1)
+					data_y = zeropadrowwise(data_y, increasefftpointsmultiplier);
                 
                 // interpolate to linear k space
                 for (int p=0; p<(data_y.rows); p++)
@@ -802,13 +889,47 @@ int main(int argc, char *argv[])
 					log(bscan, bscanlog);					// switch to logarithmic scale
 															//convert to dB = 20 log10(value), from the natural log above
 					bscandb = 20.0 * bscanlog / 2.303;
+					
+					bscandb.row(4).copyTo(bscandb.row(1));	// masking out the DC in the display
+                    bscandb.row(4).copyTo(bscandb.row(0));
 
-					normalize(bscandb, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
-					bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
+					bscandisp=bscandb.rowRange(0, numdisplaypoints);
+					normalize(bscandisp, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
+					if (jthresholding)
+					{
+						// create the mask
+						Mat jthreshdiff = bscandisp*255 - jscansave;
+						Mat positivediff;
+						jthreshdiff.copyTo(positivediff);		// just to initialize the Mat
+						makeonlypositive(jthreshdiff, positivediff);
+						positivediff.convertTo(positivediff, CV_8UC1, 1.0);
+						threshold(positivediff, jmask, 5, 255, THRESH_BINARY);
+						// bitwise AND the image with the mask
+						bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
+						bitwise_and(bscandisp, jmask, bscandisp);
+					}
+					else
+					{
+						bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
+					}
 					applyColorMap(bscandisp, cmagI, COLORMAP_JET);
 					
 					imshow( "Bscan", cmagI );
 					//imshow( "Bscan", bscan );
+					if (jkeypressed == 1)
+					{
+						bscandisp.convertTo(jscansave, CV_64FC1, 1.0);
+						jthresholding = 1;			// setting the boolean flag
+						jkeypressed = 0;
+					}
+					
+					if (ckeypressed == 1)
+					{
+						// clear the thresholding boolean
+						jthresholding = 0;
+						ckeypressed = 0;
+					}
+
 					
 					if (skeypressed==1)	
                  
@@ -847,6 +968,11 @@ int main(int argc, char *argv[])
 				
 					bscantransposed = Mat::zeros(Size(numfftpoints/2, oph), CV_64F);
 				}
+					// toggle the buffers
+					if (zeroisactive)
+						zeroisactive=0;
+					else
+						zeroisactive=1;
 				 
 				 //////////////////////////////////////////////////////
 				// a bscan without linearization, sanity check.
