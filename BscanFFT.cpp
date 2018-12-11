@@ -129,8 +129,8 @@ inline Mat zeropadrowwise(Mat sm, int sn)
     RHS.copyTo(LHS);
     tmp.copyTo(RHS);
 	
-	copyMakeBorder( fouriertransform, fouriertransformzp, 0, 0, floor((newnumcols-numcols)/2), floor((newnumcols-numcols)/2), BORDER_CONSTANT, 0 );
-			// this does the zero pad
+	copyMakeBorder( fouriertransform, fouriertransformzp, 0, 0, floor((newnumcols-numcols)/2), floor((newnumcols-numcols)/2), BORDER_CONSTANT, 0.0 );
+			// this does the zero pad - copyMakeBorder(src, dest, top, bottom, left, right, borderType, value)
 	
 	// Now we do the ifftshift before ifft
 	cx = fouriertransformzp.cols/2;
