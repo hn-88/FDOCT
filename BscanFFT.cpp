@@ -84,28 +84,66 @@ inline Mat zeropadrowwise(Mat sm, int sn)
 {
 	// increase fft points sn times 
 	// newnumcols = numcols*sn;
-	// by zero padding, fft and then inv fft
+	// by fft, zero padding, and then inv fft
 	
 	// returns CV_64F
 	
 	// guided by https://stackoverflow.com/questions/10269456/inverse-fourier-transformation-in-opencv
 	// inspired by Drexler & Fujimoto 2nd ed Section 5.1.10
 	
+	// needs fftshift implementation for the zero pad to work correctly if done on borders.
+	// or else adding zeros directly to the higher frequencies. 
+	
+	// freqcomplex=fftshift(fft(signal));
+	// zp2=4*ifft(ifftshift(zpfreqcomplex));
+	
+	// result of this way of zero padding in the fourier domain is to resample the same min / max range
+	// at a higher sampling rate in the initial domain.
+	// So this improves the k linear interpolation.
+	
 	Mat origimage;
-	Mat fouriertransform;
+	Mat fouriertransform, fouriertransformzp;
 	Mat inversefouriertransform;
 	
 	int numrows = sm.rows;
 	int numcols = sm.cols;
 	int newnumcols = numcols*sn;
 	
-	copyMakeBorder( sm, origimage, 0, 0, floor((newnumcols-numcols)/2), floor((newnumcols-numcols)/2), BORDER_CONSTANT, 0 );		// this does the zero pad
-	
-	origimage.convertTo(origimage, CV_32F);
+	sm.convertTo(origimage, CV_32F);
 	
 	dft(origimage, fouriertransform, DFT_SCALE|DFT_COMPLEX_OUTPUT|DFT_ROWS);
-	dft(fouriertransform, inversefouriertransform, DFT_INVERSE|DFT_REAL_OUTPUT|DFT_ROWS);
+	
+	// implementing fftshift row-wise
+	// like https://docs.opencv.org/2.4/doc/tutorials/core/discrete_fourier_transform/discrete_fourier_transform.html
+	int cx = fouriertransform.cols/2;
+	
+	// here we assume fouriertransform.cols is even
+	
+	Mat LHS(fouriertransform, Rect(0, 0, cx, fouriertransform.rows));   // Create a ROI per half
+	Mat RHS(fouriertransform, Rect(cx, 0, cx, fouriertransform.rows)); //  Rect(topleftx, toplefty, w, h), 
+	// OpenCV typically assumes that the top and left boundary of the rectangle are inclusive, while the right and bottom boundaries are not. 
+	// https://docs.opencv.org/3.2.0/d2/d44/classcv_1_1Rect__.html
+	
+	Mat tmp;                           // swap LHS & RHS
+    LHS.copyTo(tmp);
+    RHS.copyTo(LHS);
+    tmp.copyTo(RHS);
+	
+	copyMakeBorder( fouriertransform, fouriertransformzp, 0, 0, floor((newnumcols-numcols)/2), floor((newnumcols-numcols)/2), BORDER_CONSTANT, 0 );
+			// this does the zero pad
+	
+	// Now we do the ifftshift before ifft
+	cx = fouriertransformzp.cols/2;
+	Mat LHSzp(fouriertransformzp, Rect(0, 0, cx, fouriertransformzp.rows));   // Create a ROI per half
+	Mat RHSzp(fouriertransformzp, Rect(cx, 0, cx, fouriertransformzp.rows)); //  Rect(topleftx, toplefty, w, h)
+	
+	LHSzp.copyTo(tmp);
+    RHSzp.copyTo(LHSzp);
+    tmp.copyTo(RHSzp);
+	
+	dft(fouriertransformzp, inversefouriertransform, DFT_INVERSE|DFT_REAL_OUTPUT|DFT_ROWS);
 	inversefouriertransform.convertTo(inversefouriertransform, CV_64F);
+	
 	return inversefouriertransform;
 }
 
@@ -353,9 +391,7 @@ int main(int argc, char *argv[])
 	oph = h / binvalue;
 	float lambda0 = (lambdamin + lambdamax) / 2;
 	float lambdabw = lambdamax - lambdamin;
-	float zplambdabw = lambdabw*increasefftpointsmultiplier;
-	float zplambdamin = lambda0 - zplambdabw/2;
-	float zplambdamax = lambda0 + zplambdabw/2;
+	
 
 	Mat ROI;
 	Mat plot_result;
@@ -420,11 +456,9 @@ int main(int argc, char *argv[])
 		
 	if (increasefftpointsmultiplier > 1)
 	{
-		// the bw also increases
 		lambdas = Mat::zeros(cv::Size(1, increasefftpointsmultiplier*data_y.cols), CV_64F);		//Size(cols,rows)
 		diffk = Mat::zeros(cv::Size(1, increasefftpointsmultiplier*data_y.cols), CV_64F);
-		slopes = Mat::zeros(cv::Size(data_y.rows, increasefftpointsmultiplier*data_y.cols), CV_64F);
-		 
+		slopes = Mat::zeros(cv::Size(data_y.rows, increasefftpointsmultiplier*data_y.cols), CV_64F); 
 	}
 	else
 	{
@@ -438,13 +472,13 @@ int main(int argc, char *argv[])
 
 	for (indextemp = 0; indextemp<(increasefftpointsmultiplier*data_y.cols); indextemp++)
 	{
-		// lambdas = linspace(830e-9, 870e-9, data_y.cols)
+		// lambdas = linspace(830e-9, 870e-9 - deltalambda, data_y.cols)
 		lambdas.at<double>(0, indextemp) = lambdamin + indextemp * deltalambda;
 
 	}
 	k = 2 * pi / lambdas;
-	kmin = 2 * pi / (zplambdamax - deltalambda);
-	kmax = 2 * pi / zplambdamin;
+	kmin = 2 * pi / (lambdamax - deltalambda);
+	kmax = 2 * pi / lambdamin;
 	double deltak = (kmax - kmin) / numfftpoints;
 
 	for (indextemp = 0; indextemp<(numfftpoints); indextemp++)
