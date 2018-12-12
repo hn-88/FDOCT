@@ -86,21 +86,59 @@ inline Mat zeropadrowwise(Mat sm, int sn)
 	// guided by https://stackoverflow.com/questions/10269456/inverse-fourier-transformation-in-opencv
 	// inspired by Drexler & Fujimoto 2nd ed Section 5.1.10
 	
+	// needs fftshift implementation for the zero pad to work correctly if done on borders.
+	// or else adding zeros directly to the higher frequencies. 
+	
+	// freqcomplex=fftshift(fft(signal));
+	// zp2=4*ifft(ifftshift(zpfreqcomplex));
+	
+	// result of this way of zero padding in the fourier domain is to resample the same min / max range
+	// at a higher sampling rate in the initial domain.
+	// So this improves the k linear interpolation.
+	
 	Mat origimage;
-	Mat fouriertransform;
+	Mat fouriertransform, fouriertransformzp;
 	Mat inversefouriertransform;
 	
 	int numrows = sm.rows;
 	int numcols = sm.cols;
 	int newnumcols = numcols*sn;
 	
-	copyMakeBorder( sm, origimage, 0, 0, floor((newnumcols-numcols)/2), floor((newnumcols-numcols)/2), BORDER_CONSTANT, 0 );		// this does the zero pad
-	
-	origimage.convertTo(origimage, CV_32F);
+	sm.convertTo(origimage, CV_32F);
 	
 	dft(origimage, fouriertransform, DFT_SCALE|DFT_COMPLEX_OUTPUT|DFT_ROWS);
-	dft(fouriertransform, inversefouriertransform, DFT_INVERSE|DFT_REAL_OUTPUT|DFT_ROWS);
+	
+	// implementing fftshift row-wise
+	// like https://docs.opencv.org/2.4/doc/tutorials/core/discrete_fourier_transform/discrete_fourier_transform.html
+	int cx = fouriertransform.cols/2;
+	
+	// here we assume fouriertransform.cols is even
+	
+	Mat LHS(fouriertransform, Rect(0, 0, cx, fouriertransform.rows));   // Create a ROI per half
+	Mat RHS(fouriertransform, Rect(cx, 0, cx, fouriertransform.rows)); //  Rect(topleftx, toplefty, w, h), 
+	// OpenCV typically assumes that the top and left boundary of the rectangle are inclusive, while the right and bottom boundaries are not. 
+	// https://docs.opencv.org/3.2.0/d2/d44/classcv_1_1Rect__.html
+	
+	Mat tmp;                           // swap LHS & RHS
+    LHS.copyTo(tmp);
+    RHS.copyTo(LHS);
+    tmp.copyTo(RHS);
+	
+	copyMakeBorder( fouriertransform, fouriertransformzp, 0, 0, floor((newnumcols-numcols)/2), floor((newnumcols-numcols)/2), BORDER_CONSTANT, 0.0 );
+			// this does the zero pad - copyMakeBorder(src, dest, top, bottom, left, right, borderType, value)
+	
+	// Now we do the ifftshift before ifft
+	cx = fouriertransformzp.cols/2;
+	Mat LHSzp(fouriertransformzp, Rect(0, 0, cx, fouriertransformzp.rows));   // Create a ROI per half
+	Mat RHSzp(fouriertransformzp, Rect(cx, 0, cx, fouriertransformzp.rows)); //  Rect(topleftx, toplefty, w, h)
+	
+	LHSzp.copyTo(tmp);
+    RHSzp.copyTo(LHSzp);
+    tmp.copyTo(RHSzp);
+	
+	dft(fouriertransformzp, inversefouriertransform, DFT_INVERSE|DFT_REAL_OUTPUT|DFT_ROWS);
 	inversefouriertransform.convertTo(inversefouriertransform, CV_64F);
+	
 	return inversefouriertransform;
 }
 
@@ -252,11 +290,10 @@ int main(int argc, char *argv[])
 
 	//namedWindow("linearized",0); // 0 = WINDOW_NORMAL
 	//moveWindow("linearized", 20, 500);
-	
-	
+
 	//namedWindow("Bscanl",0); // 0 = WINDOW_NORMAL
 	//moveWindow("Bscanl", 400, 0);
-	
+
 	char dirname[80];
 	char filename[20];
 	char filenamec[20];
@@ -264,7 +301,7 @@ int main(int argc, char *argv[])
 	char lambdamaxstr[40];
 	char lambdaminstr[40];
 	struct tm *timenow;
-	
+
 	time_t now = time(NULL);
 
 	// inputs from ini file
@@ -326,8 +363,8 @@ int main(int argc, char *argv[])
 		lambdamax = atof(lambdamaxstr);
 	}
 
-		  else std::cout << "Unable to open ini file, using defaults.";
-		  
+	else std::cout << "Unable to open ini file, using defaults.";
+
 	namedWindow("show", 0); // 0 = WINDOW_NORMAL
 	moveWindow("show", 20, 0);
 
@@ -339,8 +376,8 @@ int main(int argc, char *argv[])
 		namedWindow("Bscanm", 0); // 0 = WINDOW_NORMAL
 		moveWindow("Bscanm", 800, 400);
 	}
-	   
-	   
+
+
 	/////////////////////////////////////
 	// init camera, variables, etc
 
@@ -349,25 +386,23 @@ int main(int argc, char *argv[])
 	oph = h / binvalue;
 	float lambda0 = (lambdamin + lambdamax) / 2;
 	float lambdabw = lambdamax - lambdamin;
-	float zplambdabw = lambdabw*increasefftpointsmultiplier;
-	float zplambdamin = lambda0 - zplambdabw/2;
-	float zplambdamax = lambda0 + zplambdabw/2;
 	
+
 	Mat ROI;
 	Mat plot_result;
 	Mat plot_result2;
-	 
-	Mat data_y( oph, opw, CV_64F );		// the Mat constructor Mat(rows,columns,type)
-	Mat data_ylin( oph, numfftpoints, CV_64F );
-	Mat data_yb( oph, opw, CV_64F );
-	Mat data_yp( oph, opw, CV_64F );
+
+	Mat data_y(oph, opw, CV_64F);		// the Mat constructor Mat(rows,columns,type)
+	Mat data_ylin(oph, numfftpoints, CV_64F);
+	Mat data_yb(oph, opw, CV_64F);
+	Mat data_yp(oph, opw, CV_64F);
 	Mat padded, paddedn;
-	Mat barthannwin( 1, opw, CV_64F );		// the Mat constructor Mat(rows,columns,type);
+	Mat barthannwin(1, opw, CV_64F);		// the Mat constructor Mat(rows,columns,type);
 	Mat baccum, manualaccum;
 	int baccumcount, manualaccumcount;
-	
+
 	// initialize data_yb with zeros
-	data_yb = Mat::zeros(Size(opw, oph), CV_64F);		//Size(cols,rows)	
+	data_yb = Mat::zeros(Size(opw, oph), CV_64F);		//Size(cols,rows)		
 	data_yp = Mat::zeros(Size(opw, oph), CV_64F);
 	baccum = Mat::zeros(Size(opw, oph), CV_64F);
 	baccumcount = 0;
@@ -386,11 +421,12 @@ int main(int argc, char *argv[])
 	Mat interferogramsave1[100];
 	
 	bool zeroisactive = 1;
-	 
+
 	int nr, nc;
-	
+
 	Mat m, opm, opmvector, bscan, bscanlog, bscandb, bscandisp, bscandispmanual, bscantemp, bscantemp2, bscantemp3, bscantransposed, chan[3];
 	Mat mraw;
+
 	//Mat bscanl, bscantempl, bscantransposedl;
 	Mat magI, cmagI, cmagImanual;
 	//Mat magIl, cmagIl;
@@ -399,14 +435,14 @@ int main(int argc, char *argv[])
 	Scalar meanval;
 	Mat lambdas, k, klinear;
 	Mat diffk, slopes, fractionalk, nearestkindex;
-	
+
 	double kmin, kmax;
 	double pi = 3.141592653589793;
-	
+
 	double minVal, maxVal, pixVal;
 	//minMaxLoc( m, &minVal, &maxVal, &minLoc, &maxLoc );
 
-	double deltalambda = (lambdamax - lambdamin ) / data_y.cols;
+	double deltalambda = (lambdamax - lambdamin) / data_y.cols;
 	
 	 
 	klinear = Mat::zeros(cv::Size(1, numfftpoints), CV_64F);
@@ -415,11 +451,9 @@ int main(int argc, char *argv[])
 		
 	if (increasefftpointsmultiplier > 1)
 	{
-		// the bw also increases
 		lambdas = Mat::zeros(cv::Size(1, increasefftpointsmultiplier*data_y.cols), CV_64F);		//Size(cols,rows)
 		diffk = Mat::zeros(cv::Size(1, increasefftpointsmultiplier*data_y.cols), CV_64F);
-		slopes = Mat::zeros(cv::Size(data_y.rows, increasefftpointsmultiplier*data_y.cols), CV_64F);
-		 
+		slopes = Mat::zeros(cv::Size(data_y.rows, increasefftpointsmultiplier*data_y.cols), CV_64F); 
 	}
 	else
 	{
@@ -428,17 +462,18 @@ int main(int argc, char *argv[])
 		slopes = Mat::zeros(cv::Size(data_y.rows, data_y.cols), CV_64F);
 		
 	}
+
 	resizeWindow("Bscan", oph, numdisplaypoints);		// (width,height)
-	
+
 	for (indextemp = 0; indextemp<(increasefftpointsmultiplier*data_y.cols); indextemp++)
 	{
-		// lambdas = linspace(830e-9, 870e-9, data_y.cols)
+		// lambdas = linspace(830e-9, 870e-9 - deltalambda, data_y.cols)
 		lambdas.at<double>(0, indextemp) = lambdamin + indextemp * deltalambda;
 
 	}
 	k = 2 * pi / lambdas;
-	kmin = 2 * pi / (zplambdamax - deltalambda);
-	kmax = 2 * pi / zplambdamin;
+	kmin = 2 * pi / (lambdamax - deltalambda);
+	kmax = 2 * pi / lambdamin;
 	double deltak = (kmax - kmin) / numfftpoints;
 
 	for (indextemp = 0; indextemp<(numfftpoints); indextemp++)
@@ -453,8 +488,8 @@ int main(int argc, char *argv[])
 	//{
 		//printf("k=%f, klin=%f\n", k.at<double>(0,indextemp), klinear.at<double>(0,indextemp));
 	//}
-	
-	
+
+
 	for (indextemp = 1; indextemp<(increasefftpointsmultiplier*data_y.cols); indextemp++)
 	{
 		//find the diff of the non-linear ks
@@ -476,14 +511,14 @@ int main(int argc, char *argv[])
 				nearestkindex.at<int>(0, f) = indextemp;
 				//printf("After if k=%f,klin=%f,nearestkindex=%d\n",k.at<double>(0,indextemp),klinear.at<double>(0,f),nearestkindex.at<int>(0,f));
 				break;
-				
+
 			}	// end if
-			
-			
+
+
 		}		//end indextemp loop
-		
+
 	}		// end f loop
-	
+
 	for (int f = 0; f < numfftpoints; f++)
 	{
 		// now find the fractional amount by which the linearized k value is greater than the next lowest k
@@ -492,10 +527,10 @@ int main(int argc, char *argv[])
 		//printf("f=%d, fractionalk=%f\n",f, fractionalk.at<double>(0,f));
 	}
 
-	
-	
+
+
 	timenow = localtime(&now);
-	
+
 	strftime(dirname, sizeof(dirname), "%Y-%m-%d_%H_%M_%S-", timenow);
 
 	strcat(dirname, dirdescr);
@@ -711,12 +746,12 @@ int main(int argc, char *argv[])
             goto failure;
         }
         */
-        t_start = time(NULL);
-        fps = 0;
-        
-        indexi = 0;
+		t_start = time(NULL);
+		fps = 0;
+
+		indexi = 0;
 		manualindexi = 0;
-        indextemp = 0;
+		indextemp = 0;
 		bscantransposed = Mat::zeros(Size(numfftpoints/2, oph), CV_64F);
 		manualaccum = Mat::zeros(Size(oph, numfftpoints/2), CV_64F); // this is transposed version
 	    //bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
@@ -726,8 +761,8 @@ int main(int argc, char *argv[])
 			// create modified Bartlett-Hann window
 			// https://in.mathworks.com/help/signal/ref/barthannwin.html
 			float nn = p;
-			float NN = opw-1;
-			barthannwin.at<double>(0,p) = 0.62 - 0.48*std::abs(nn/NN - 0.5) + 0.38*std::cos(2*pi*(nn/NN - 0.5));
+			float NN = opw - 1;
+			barthannwin.at<double>(0, p) = 0.62 - 0.48*std::abs(nn / NN - 0.5) + 0.38*std::cos(2 * pi*(nn / NN - 0.5));
 			
 		}
 		
@@ -765,7 +800,7 @@ int main(int argc, char *argv[])
 					m = imread("backg.png");
 					split(m,chan);
 					resize(chan[0], opm, Size(), 1.0/binvalue, 1.0/binvalue, INTER_AREA);	// binning (averaging)
-					opm.copyTo(data_yb);	
+					opm.convertTo(data_yb, CV_64F);	
 					 //data_y.copyTo(data_yb);		// saves the "background" or source spectrum	
 					 bkeypressed=0; 
 						
@@ -777,7 +812,7 @@ int main(int argc, char *argv[])
 					m = imread("piimgi.png");
 					split(m,chan);
 					resize(chan[0], opm, Size(), 1.0/binvalue, 1.0/binvalue, INTER_AREA);	// binning (averaging)
-					opm.copyTo(data_yp);	
+					opm.convertTo(data_yp, CV_64F);	
 					 //data_y.copyTo(data_yb);		// saves the "background" or source spectrum	
 					 pkeypressed=0; 
 						
@@ -877,7 +912,8 @@ int main(int argc, char *argv[])
 				{
 					bscantemp = magI.colRange(0, numdisplaypoints);
 					bscantemp.convertTo(bscantemp,CV_64F);
-					accumulate(bscantemp, bscantransposed);
+					//accumulate(bscantemp, bscantransposed);
+					bscantemp.copyTo(bscantransposed);
 					indextemp++;
 				}
 				else
