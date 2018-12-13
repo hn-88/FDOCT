@@ -473,7 +473,7 @@ int main(int argc, char *argv[])
 	for (indextemp = 0; indextemp<(increasefftpointsmultiplier*data_y.cols); indextemp++)
 	{
 		// lambdas = linspace(830e-9, 870e-9 - deltalambda, data_y.cols)
-		lambdas.at<double>(0, indextemp) = lambdamin + indextemp * deltalambda;
+		lambdas.at<double>(0, indextemp) = lambdamin + indextemp * deltalambda / increasefftpointsmultiplier;
 
 	}
 	k = 2 * pi / lambdas;
@@ -508,7 +508,7 @@ int main(int argc, char *argv[])
 	for (int f = 0; f < numfftpoints; f++)
 	{
 		// find the index of the nearest k value, less than the linear k
-		for (indextemp = 0; indextemp < data_y.cols; indextemp++)
+		for (indextemp = 0; indextemp < increasefftpointsmultiplier*data_y.cols; indextemp++)
 		{
 			//printf("Before if k=%f,klin=%f \n",k.at<double>(0,indextemp),klinear.at<double>(0,f));
 			if (k.at<double>(0, indextemp) < klinear.at<double>(0, f))
