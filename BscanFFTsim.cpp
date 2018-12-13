@@ -267,6 +267,7 @@ int main(int argc, char *argv[])
 	bool manualaveraging = 0, saveinterferograms = 0;
 	unsigned int manualaverages = 1;
 	int movavgn = 0;
+	bool firstrun = 1;
 
 	bool doneflag = 0, skeypressed = 0, bkeypressed = 0, pkeypressed = 0;
 	bool jthresholding = 0, jkeypressed = 0, ckeypressed = 0;
@@ -370,6 +371,10 @@ int main(int argc, char *argv[])
 
 	namedWindow("Bscan", 0); // 0 = WINDOW_NORMAL
 	moveWindow("Bscan", 800, 0);
+	
+	namedWindow("debug", 0); // 0 = WINDOW_NORMAL
+	moveWindow("Bscan", 20, 400);
+	
 
 	if (manualaveraging)
 	{
@@ -394,6 +399,7 @@ int main(int argc, char *argv[])
 
 	Mat data_y(oph, opw, CV_64F);		// the Mat constructor Mat(rows,columns,type)
 	Mat data_ylin(oph, numfftpoints, CV_64F);
+	//imshow("debug", data_ylin);
 	Mat data_yb(oph, opw, CV_64F);
 	Mat data_yp(oph, opw, CV_64F);
 	Mat padded, paddedn;
@@ -468,7 +474,7 @@ int main(int argc, char *argv[])
 	for (indextemp = 0; indextemp<(increasefftpointsmultiplier*data_y.cols); indextemp++)
 	{
 		// lambdas = linspace(830e-9, 870e-9 - deltalambda, data_y.cols)
-		lambdas.at<double>(0, indextemp) = lambdamin + indextemp * deltalambda;
+		lambdas.at<double>(0, indextemp) = lambdamin + indextemp * deltalambda / increasefftpointsmultiplier;
 
 	}
 	k = 2 * pi / lambdas;
@@ -503,7 +509,7 @@ int main(int argc, char *argv[])
 	for (int f = 0; f < numfftpoints; f++)
 	{
 		// find the index of the nearest k value, less than the linear k
-		for (indextemp = 0; indextemp < data_y.cols; indextemp++)
+		for (indextemp = 0; indextemp < increasefftpointsmultiplier*data_y.cols; indextemp++)
 		{
 			//printf("Before if k=%f,klin=%f \n",k.at<double>(0,indextemp),klinear.at<double>(0,f));
 			if (k.at<double>(0, indextemp) < klinear.at<double>(0, f))
@@ -853,6 +859,11 @@ int main(int argc, char *argv[])
 				//increasing number of points by zero padding
 				if (increasefftpointsmultiplier > 1)
 					data_y = zeropadrowwise(data_y, increasefftpointsmultiplier);
+					
+				// debug
+				//imshow("debug",data_y); 	// this will have neg numbers also
+				//sprintf(filename, "debugzpadded");
+				//savematasdata(outfile, filename, data_y);
                 
                 // interpolate to linear k space
                 for (int p=0; p<(data_y.rows); p++)
@@ -881,6 +892,20 @@ int main(int argc, char *argv[])
 					//data_ylin.at<double>(p, 0) = 0;
 					//data_ylin.at<double>(p, numfftpoints) = 0;
 					
+					
+				
+					
+				}
+				// debug
+				imshow("debug",data_ylin); 	// this will have neg numbers also
+				if (firstrun)
+				{
+					sprintf(filename, "debugzpaddedlin");
+					savematasdata(outfile, filename, data_ylin);
+					sprintf(filename, "nearestkindex");
+					savematasdata(outfile, filename, nearestkindex);
+					
+					firstrun=0;
 				}
 
                 // InvFFT
