@@ -375,7 +375,40 @@ int main(int argc, char *argv[])
 
 	namedWindow("Bscan", 0); // 0 = WINDOW_NORMAL
 	moveWindow("Bscan", 800, 0);
+	
+	// debug
+	/*
+	char debugwinname[80];
+	namedWindow("debug1", 0); // 0 = WINDOW_NORMAL
+	moveWindow("debug1", 100, 600);
+	namedWindow("debug2", 0); // 0 = WINDOW_NORMAL
+	moveWindow("debug2", 200, 600);
 
+	namedWindow("debug3", 0); // 0 = WINDOW_NORMAL
+	moveWindow("debug3", 300, 600);
+
+	namedWindow("debug4", 0); // 0 = WINDOW_NORMAL
+	moveWindow("debug4", 400, 600);
+
+	namedWindow("debug5", 0); // 0 = WINDOW_NORMAL
+	moveWindow("debug5", 500, 600);
+
+	namedWindow("debug6", 0); // 0 = WINDOW_NORMAL
+	moveWindow("debug6", 600, 600);
+	
+	namedWindow("debug7", 0); // 0 = WINDOW_NORMAL
+	moveWindow("debug7", 700, 600);
+
+	namedWindow("debug8", 0); // 0 = WINDOW_NORMAL
+	moveWindow("debug8", 800, 600);
+
+	namedWindow("debug9", 0); // 0 = WINDOW_NORMAL
+	moveWindow("debug9", 900, 600);
+
+	namedWindow("debug0", 0); // 0 = WINDOW_NORMAL
+	moveWindow("debug0", 0, 600);
+	* */
+	
 	if (manualaveraging)
 	{
 		namedWindow("Bscanm", 0); // 0 = WINDOW_NORMAL
@@ -424,6 +457,8 @@ int main(int argc, char *argv[])
 
 	Mat interferogramsave0[100];
 	Mat interferogramsave1[100];
+	Mat interferogrambsave0[100];
+	Mat interferogrambsave1[100];
 	
 	bool zeroisactive = 1;
 
@@ -787,7 +822,30 @@ int main(int argc, char *argv[])
 				resize(m, opm, Size(), 1.0 / binvalue, 1.0 / binvalue, INTER_AREA);	// binning (averaging)
 				imshow("show", opm);
 				
-				
+				if (saveinterferograms)
+						{
+							// save mraw to active buffer
+							// inactive buffer is saved to disk when skeypressed
+							if (zeroisactive)
+							{
+								mraw.copyTo(interferogramsave0[indextemp]);
+								opm.copyTo(interferogrambsave0[indextemp]);
+								//printf("Saved to interferogramsave0[%d]\n",indextemp);
+								//sprintf(debugwinname,"debug%d",baccumcount);
+								//imshow(debugwinname,interferogramsave0[indextemp]);
+								//waitKey(30);
+							}
+							else
+							{
+								mraw.copyTo(interferogramsave1[indextemp]);
+								opm.copyTo(interferogrambsave1[indextemp]);
+								//printf("Saved to interferogramsave1[%d]\n",indextemp);
+								//sprintf(debugwinname,"debug%d",baccumcount);
+								//imshow(debugwinname,interferogramsave1[indextemp]);
+								//waitKey(30);
+							}
+							
+						}
 				
 				
 				opm.convertTo(data_y, CV_64F);	// initialize data_y
@@ -806,47 +864,60 @@ int main(int argc, char *argv[])
 				if (bkeypressed == 1)
 
 				{
-					if (baccumcount < averages)
-					{
-						accumulate(data_y, baccum);
-						// save the raw frame to buffer
-						if (saveinterferograms)
+					if (saveinterferograms)
 						{
-							// save m to active buffer
-							// inactive buffer is saved to disk when skeypressed
-							if (zeroisactive)
-								mraw.copyTo(interferogramsave0[baccumcount]);
-							else
-								mraw.copyTo(interferogramsave1[baccumcount]);
-							
-						}
-						baccumcount++;
-					}
-					else
-					{
-						baccum.copyTo(data_yb);		// saves the "background" or source spectrum
-						if (saveinterferograms)
-						{
-							// inactive buffer is saved to disk when bkeypressed
+							// in this case, formerly active buffer is saved to disk when bkeypressed
+							// since no further 
 							// and all accumulation is done
+							Mat activeMat, activeMatb, activeMat64;
 							for (int ii = 0; ii<averages; ii++)
 							{
-								sprintf(filename, "rawframeb%03d-%03d", indexi,ii);
 								if (zeroisactive)
-									savematasimage(pathname, dirname, filename, interferogramsave1[ii]);
+								{
+									activeMat  = interferogramsave1[ii];
+									activeMatb = interferogrambsave1[ii];
+								}
 								else
-									savematasimage(pathname, dirname, filename, interferogramsave0[ii]);
+								{
+									activeMat  = interferogramsave0[ii];
+									activeMatb = interferogrambsave0[ii];
+								}
+									
+								sprintf(filename, "rawframeb%03d-%03d", indexi,ii);
+								savematasimage(pathname, dirname, filename, activeMat);
+								activeMatb.convertTo(activeMat64, CV_64F);
+								accumulate(activeMat64,baccum);
 							}
+							baccum.copyTo(data_yb);		// saves the "background" or source spectrum
+							normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
+							bkeypressed = 0;
 							
 						}	
-						normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
-						bkeypressed = 0;
-						baccumcount = 0;
-						if (manualaveraging)
+						
+						else 
 						{
-							averages = 1;
-						}
-					}
+							if (baccumcount < averages)
+							{
+								accumulate(data_y, baccum);
+								// save the raw frame to buffer
+								
+								baccumcount++;
+							}
+							else
+							{
+								baccum.copyTo(data_yb);		// saves the "background" or source spectrum
+								
+								normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
+								bkeypressed = 0;
+								baccumcount = 0;
+								
+							}
+						} // end if not saveinterferograms
+						
+						if (manualaveraging)
+								{
+									averages = 1;
+								}
 
 				}
 
@@ -857,18 +928,14 @@ int main(int argc, char *argv[])
 					data_y.copyTo(data_yp);		// saves the pi shifted or J0 spectrum	
 					if (saveinterferograms)
 						{
-							// inactive buffer is saved to disk when bkeypressed
-							// and all accumulation is done
-							for (int ii = 0; ii<averages; ii++)
-							{
-								sprintf(filename, "rawframep%03d-%03d", indexi,ii);
-								if (zeroisactive)
-									savematasimage(pathname, dirname, filename, interferogramsave1[ii]);
-								else
-									savematasimage(pathname, dirname, filename, interferogramsave0[ii]);
-							}
-							
-						}	
+							// only a single frame to be saved when pkeypressed
+							Mat temp;
+							data_y.convertTo(temp, CV_8UC1); 
+							sprintf(filename, "rawframepbin%03d", indexi);
+							savematasimage(pathname, dirname, filename, temp);
+							sprintf(filename, "rawframep%03d", indexi);
+							savematasimage(pathname, dirname, filename, mraw);
+						}
 					data_yp.convertTo(data_yp, CV_64F);
 					normalize(data_yp, data_yp, 0, 1, NORM_MINMAX);
 					pkeypressed = 0;
@@ -984,14 +1051,27 @@ int main(int argc, char *argv[])
 					indextemp++;
 
 				}
-				else
+				
+				if (indextemp == averages)
 				{
 					indextemp = 0;
 					// we will also toggle the buffers, at the end of this 'else' code block
 					
 					transpose(bscantransposed, bscan);
 
-					bscan += Scalar::all(0.000001);   	// to prevent log of 0  
+					bscan += Scalar::all(0.1);   	// to prevent log of 0  
+					// 20.0 * log(0.1) / 2.303 = -20 dB, which is sufficient 
+					
+					if (jthresholding)
+					{
+						// create the mask - check types and subtraction
+						Mat jthreshdiff = bscan - jscansave;
+						Mat positivediff;
+						jthreshdiff.copyTo(positivediff);		// just to initialize the Mat
+						makeonlypositive(jthreshdiff, positivediff);
+						positivediff.convertTo(positivediff, CV_8UC1, 1.0);
+						threshold(positivediff, jmask, 5, 255, THRESH_BINARY);
+					}
 
 
 					log(bscan, bscanlog);					// switch to logarithmic scale
@@ -1003,31 +1083,20 @@ int main(int argc, char *argv[])
 
 					bscandisp=bscandb.rowRange(0, numdisplaypoints);
 					normalize(bscandisp, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
-					
+					bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
 					if (jthresholding)
 					{
-						// create the mask
-						Mat jthreshdiff = bscandisp*255 - jscansave;
-						Mat positivediff;
-						jthreshdiff.copyTo(positivediff);		// just to initialize the Mat
-						makeonlypositive(jthreshdiff, positivediff);
-						positivediff.convertTo(positivediff, CV_8UC1, 1.0);
-						threshold(positivediff, jmask, 5, 255, THRESH_BINARY);
 						// bitwise AND the image with the mask
-						bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
 						bitwise_and(bscandisp, jmask, bscandisp);
 					}
-					else
-					{
-						bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
-					}
+					
 					applyColorMap(bscandisp, cmagI, COLORMAP_JET);
 					
 					imshow("Bscan", cmagI);
 					
 					if (jkeypressed == 1)
 					{
-						bscandisp.convertTo(jscansave, CV_64FC1, 1.0);
+						bscan.copyTo(jscansave);
 						jthresholding = 1;			// setting the boolean flag
 						jkeypressed = 0;
 					}
@@ -1066,6 +1135,26 @@ int main(int argc, char *argv[])
 							normalize(data_ylin, bscantemp2, 0, 255, NORM_MINMAX);	// normalize the log plot for save
 							bscantemp2.convertTo(bscantemp2, CV_8UC1, 1.0);		// imwrite needs 0-255 CV_8U
 							savematasimage(pathname, dirname, filename, bscantemp2);
+							// in this case, formerly active buffer is saved to disk when bkeypressed
+							// since no further 
+							// and all accumulation is done
+							Mat activeMat;
+							for (int ii = 0; ii<averages; ii++)
+							{
+								if (zeroisactive)
+								{
+									activeMat  = interferogramsave1[ii];
+								}
+								else
+								{
+									activeMat  = interferogramsave0[ii];
+								}
+									
+								sprintf(filename, "rawframe%03d-%03d", indexi,ii);
+								savematasimage(pathname, dirname, filename, activeMat);
+								
+							}
+
 						}
 
 						if (saveframes == 1)
