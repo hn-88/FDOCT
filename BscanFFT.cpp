@@ -76,7 +76,7 @@ using namespace cv;
 inline void makeonlypositive(Mat& src, Mat& dst)
 {
 	// from https://stackoverflow.com/questions/48313249/opencv-convert-all-negative-values-to-zero
-    dst = max(src, 0);
+    max(src, 0, dst);
      
 }
 
@@ -275,7 +275,7 @@ int main(int argc, char *argv[])
 
 	bool doneflag = 0, skeypressed = 0, bkeypressed = 0, pkeypressed = 0;
 	bool jthresholding = 0, jkeypressed = 0, ckeypressed = 0;
-	Mat jmask;
+	Mat jmask, jmaskt;
 	double lambdamin, lambdamax;
 	lambdamin = 816e-9;
 	lambdamax = 884e-9;
@@ -465,6 +465,7 @@ int main(int argc, char *argv[])
 	int nr, nc;
 
 	Mat m, opm, opmvector, bscan, bscanlog, bscandb, bscandisp, bscandispmanual, bscantemp, bscantemp2, bscantemp3, bscantransposed, chan[3];
+	Mat bscandispj;
 	Mat mraw;
 
 	//Mat bscanl, bscantempl, bscantransposedl;
@@ -1064,13 +1065,15 @@ int main(int argc, char *argv[])
 					
 					if (jthresholding)
 					{
-						// create the mask - check types and subtraction
+						// create the mask 
 						Mat jthreshdiff = bscan - jscansave;
 						Mat positivediff;
 						jthreshdiff.copyTo(positivediff);		// just to initialize the Mat
 						makeonlypositive(jthreshdiff, positivediff);
 						positivediff.convertTo(positivediff, CV_8UC1, 1.0);
 						threshold(positivediff, jmask, 5, 255, THRESH_BINARY);
+						jmask.convertTo(jmask, CV_8UC1, 255.0);
+						jmaskt = jmask.rowRange(0, numdisplaypoints);
 					}
 
 
@@ -1087,9 +1090,11 @@ int main(int argc, char *argv[])
 					if (jthresholding)
 					{
 						// bitwise AND the image with the mask
-						bitwise_and(bscandisp, jmask, bscandisp);
+						// debug here
+						bitwise_and(bscandisp, jmaskt, bscandispj);
+						applyColorMap(bscandispj, cmagI, COLORMAP_JET);
 					}
-					
+					else
 					applyColorMap(bscandisp, cmagI, COLORMAP_JET);
 					
 					imshow("Bscan", cmagI);
