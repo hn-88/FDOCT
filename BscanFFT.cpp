@@ -35,6 +35,8 @@
 * d key decreases exposure time by 1 ms
 * U key increases exposure time by 10 ms
 * D key decreases exposure time by 10 ms
+* ] key increases thresholding in final Bscan
+* [ key decreases thresholding in final Bscan
 * ESC key quits
 *
 *
@@ -281,6 +283,7 @@ int main(int argc, char *argv[])
 	lambdamax = 884e-9;
 	int mediann = 5;
 	uint increasefftpointsmultiplier = 1;
+	double bscanthreshold = -30.0;
 
 	w = 640;
 	h = 480;
@@ -1085,6 +1088,10 @@ int main(int argc, char *argv[])
                     bscandb.row(4).copyTo(bscandb.row(0));
 
 					bscandisp=bscandb.rowRange(0, numdisplaypoints);
+					// apply bscanthresholding
+					// MatExpr max(const Mat& a, double s)
+					bscandisp = max(bscandisp, bscanthreshold);
+					
 					normalize(bscandisp, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 					bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
 					if (jthresholding)
@@ -1223,9 +1230,12 @@ int main(int argc, char *argv[])
 								manualaccumcount = 0;
 								log(manualaccum, manualaccum);					// switch to logarithmic scale
 																				//convert to dB = 20 log10(value), from the natural log above
-								manualaccum = 20.0 * manualaccum / 2.303;
+								bscandispmanual = 20.0 * manualaccum / 2.303;
+								
+								// apply bscanthresholding
+								bscandispmanual = max(bscandispmanual, bscanthreshold);
 
-								normalize(manualaccum, bscandispmanual, 0, 1, NORM_MINMAX);	// normalize the log plot for display
+								normalize(bscandispmanual, bscandispmanual, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 								bscandispmanual.convertTo(bscandispmanual, CV_8UC1, 255.0);
 								applyColorMap(bscandispmanual, cmagImanual, COLORMAP_JET);
 
@@ -1499,6 +1509,18 @@ int main(int argc, char *argv[])
 
 					ckeypressed = 1;
 					break;
+					
+				case ']':
+
+					bscanthreshold += 1.0;
+					printf("bscanthreshold = %f \n",bscanthreshold);
+					break;
+					
+				case '[':
+
+					bscanthreshold -= 1.0;
+					printf("bscanthreshold = %f \n",bscanthreshold);
+					break;
 
 
 
@@ -1518,7 +1540,7 @@ int main(int argc, char *argv[])
 	} // end of if found 
 
 #ifdef __unix__
-	outfile << "% Parameters were - camgain, camtime, bpp, w , h , camspeed, usbtraffic, binvalue" << std::endl;
+	outfile << "% Parameters were - camgain, camtime, bpp, w , h , camspeed, usbtraffic, binvalue, bscanthreshold" << std::endl;
 	outfile << "% " << camgain;
 	outfile << ", " << camtime;
 	outfile << ", " << bpp;
@@ -1527,6 +1549,7 @@ int main(int argc, char *argv[])
 	outfile << ", " << camspeed;
 	outfile << ", " << usbtraffic;
 	outfile << ", " << binvalue;
+	outfile << ", " << int(bscanthreshold);
 
 
 
@@ -1538,6 +1561,7 @@ int main(int argc, char *argv[])
 
 	outfile << "camgain" << camgain;
 	outfile << "camtime" << camtime;
+	outfile << "bscanthreshold" << int(threshold);
 
 
 #endif
