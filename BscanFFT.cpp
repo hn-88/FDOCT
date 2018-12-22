@@ -261,7 +261,7 @@ int main(int argc, char *argv[])
 	unsigned int numofm1slices = 10, numofm2slices = 10, firstaccum, secondaccum;
 	unsigned int offsetx = 0, offsety = 0;
 	unsigned int indexi, manualindexi, averages = 1, opw, oph;
-	int  indextemp, indextempl;
+	uint  indextemp, indextempl;
 
 
 	int camtime = 1, camgain = 1, camspeed = 1, cambinx = 2, cambiny = 2, usbtraffic = 10;
@@ -280,7 +280,7 @@ int main(int argc, char *argv[])
 	lambdamin = 816e-9;
 	lambdamax = 884e-9;
 	int mediann = 5;
-	int increasefftpointsmultiplier = 1;
+	uint increasefftpointsmultiplier = 1;
 
 	w = 640;
 	h = 480;
@@ -437,7 +437,7 @@ int main(int argc, char *argv[])
 	Mat padded, paddedn;
 	Mat barthannwin(1, opw, CV_64F);		// the Mat constructor Mat(rows,columns,type);
 	Mat baccum, manualaccum;
-	int baccumcount, manualaccumcount;
+	uint baccumcount, manualaccumcount;
 
 	// initialize data_yb with zeros
 	data_yb = Mat::zeros(Size(opw, oph), CV_64F);		//Size(cols,rows)		
@@ -798,7 +798,7 @@ int main(int argc, char *argv[])
 		manualaccum = Mat::zeros(Size(oph, numfftpoints/2), CV_64F); // this is transposed version
 																	   //bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
 
-		for (int p = 0; p<(opw); p++)
+		for (uint p = 0; p<(opw); p++)
 		{
 			// create modified Bartlett-Hann window
 			// https://in.mathworks.com/help/signal/ref/barthannwin.html
@@ -871,7 +871,7 @@ int main(int argc, char *argv[])
 							// since no further 
 							// and all accumulation is done
 							Mat activeMat, activeMatb, activeMat64;
-							for (int ii = 0; ii<averages; ii++)
+							for (uint ii = 0; ii<averages; ii++)
 							{
 								if (zeroisactive)
 								{
@@ -1144,7 +1144,7 @@ int main(int argc, char *argv[])
 							// since no further 
 							// and all accumulation is done
 							Mat activeMat;
-							for (int ii = 0; ii<averages; ii++)
+							for (uint ii = 0; ii<averages; ii++)
 							{
 								if (zeroisactive)
 								{
@@ -1164,7 +1164,7 @@ int main(int argc, char *argv[])
 
 						if (saveframes == 1)
 						{
-							for (int ii = 0; ii<averages; ii++)
+							for (uint ii = 0; ii<averages; ii++)
 							{
 								// save the bscansave array after processing
 								if (zeroisactive)
@@ -1184,7 +1184,7 @@ int main(int argc, char *argv[])
 								{
 									// inactive buffer is saved to disk when skeypressed
 									// and all accumulation is done
-									for (int ii = 0; ii<averages; ii++)
+									for (uint ii = 0; ii<averages; ii++)
 									{
 										sprintf(filename, "rawframe%03d-%03d", indexi,ii);
 										if (zeroisactive)
@@ -1245,7 +1245,7 @@ int main(int argc, char *argv[])
 
 								if (saveframes == 1)
 								{
-									for (int ii = 0; ii<manualaverages; ii++)
+									for (uint ii = 0; ii<manualaverages; ii++)
 									{
 										// save the bscanmanualsave array after processing
 										//transpose(bscanmanualsave[ii], bscantemp2); - is already transposed
