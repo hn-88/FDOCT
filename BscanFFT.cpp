@@ -75,6 +75,17 @@
 
 using namespace cv;
 
+inline void normalizerows(Mat& src, Mat& dst, double lowerlim, double upperlim)
+{
+	// https://stackoverflow.com/questions/10673715/how-to-normalize-rows-of-an-opencv-mat-without-a-loop
+	// for syntax _OutputArray(B.ptr(i), B.cols))
+	for(uint ii=0; ii<src.rows; ii++)
+	{
+		normalize(src.row(ii), dst.row(ii), lowerlim, upperlim, NORM_MINMAX);
+	}
+	 
+}
+
 inline void makeonlypositive(Mat& src, Mat& dst)
 {
 	// from https://stackoverflow.com/questions/48313249/opencv-convert-all-negative-values-to-zero
@@ -284,6 +295,7 @@ int main(int argc, char *argv[])
 	int mediann = 5;
 	uint increasefftpointsmultiplier = 1;
 	double bscanthreshold = -30.0;
+	bool rowwisenormalize = 0;
 
 	w = 640;
 	h = 480;
@@ -365,6 +377,8 @@ int main(int argc, char *argv[])
 		infile >> mediann;
 		infile >> tempstring;
 		infile >> increasefftpointsmultiplier;
+		infile >> tempstring;
+		infile >> rowwisenormalize;
 		infile.close();
 		
 		lambdamin = atof(lambdaminstr);
@@ -893,7 +907,10 @@ int main(int argc, char *argv[])
 								accumulate(activeMat64,baccum);
 							}
 							baccum.copyTo(data_yb);		// saves the "background" or source spectrum
-							normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
+							if (rowwisenormalize)
+								normalizerows(data_yb,data_yb,0.0001, 1);
+							else
+								normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
 							bkeypressed = 0;
 							
 						}	
@@ -911,7 +928,10 @@ int main(int argc, char *argv[])
 							{
 								baccum.copyTo(data_yb);		// saves the "background" or source spectrum
 								
-								normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
+								if (rowwisenormalize)
+									normalizerows(data_yb, data_yb, 0.0001, 1);
+								else
+									normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
 								bkeypressed = 0;
 								baccumcount = 0;
 								
@@ -941,7 +961,10 @@ int main(int argc, char *argv[])
 							savematasimage(pathname, dirname, filename, mraw);
 						}
 					data_yp.convertTo(data_yp, CV_64F);
-					normalize(data_yp, data_yp, 0, 1, NORM_MINMAX);
+					if (rowwisenormalize)
+						normalizerows(data_yp, data_yp, 0, 1);
+					else
+						normalize(data_yp, data_yp, 0, 1, NORM_MINMAX);
 					pkeypressed = 0;
 
 				}
@@ -963,7 +986,10 @@ int main(int argc, char *argv[])
 				// apodize 
 				// data_y = ( (data_y - data_yb) ./ data_yb ).*gausswin
 				data_y.convertTo(data_y, CV_64F);
-				normalize(data_y, data_y, 0, 1, NORM_MINMAX);
+				if (rowwisenormalize)
+					normalizerows(data_y, data_y, 0, 1);
+				else
+					normalize(data_y, data_y, 0, 1, NORM_MINMAX);
 				//data_yb.convertTo(data_yb, CV_64F);
 				//
 				data_y = (data_y - data_yp) / data_yb;
@@ -1091,8 +1117,10 @@ int main(int argc, char *argv[])
 					// apply bscanthresholding
 					// MatExpr max(const Mat& a, double s)
 					bscandisp = max(bscandisp, bscanthreshold);
-					
-					normalize(bscandisp, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
+					if (rowwisenormalize)
+						normalizerows(bscandisp, bscandisp, 0, 1);
+					else
+						normalize(bscandisp, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 					bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
 					if (jthresholding)
 					{
@@ -1144,7 +1172,10 @@ int main(int argc, char *argv[])
 						{
 							sprintf(filename, "linearized%03d", indexi);
 							savematasdata(outfile, filename, data_ylin);
-							normalize(data_ylin, bscantemp2, 0, 255, NORM_MINMAX);	// normalize the log plot for save
+							if (rowwisenormalize)
+								normalizerows(data_ylin, bscantemp2, 0, 255);
+							else
+								normalize(data_ylin, bscantemp2, 0, 255, NORM_MINMAX);	// normalize the log plot for save
 							bscantemp2.convertTo(bscantemp2, CV_8UC1, 1.0);		// imwrite needs 0-255 CV_8U
 							savematasimage(pathname, dirname, filename, bscantemp2);
 							// in this case, formerly active buffer is saved to disk when bkeypressed
@@ -1182,7 +1213,10 @@ int main(int argc, char *argv[])
 								log(bscantemp2, bscantemp2);					// switch to logarithmic scale
 																				//convert to dB = 20 log10(value), from the natural log above
 								bscantemp2 = 20.0 * bscantemp2 / 2.303;
-								normalize(bscantemp2, bscantemp2, 0, 1, NORM_MINMAX);	// normalize the log plot for save
+								if (rowwisenormalize)
+									normalizerows(bscantemp2, bscantemp2, 0, 1);
+								else
+									normalize(bscantemp2, bscantemp2, 0, 1, NORM_MINMAX);	// normalize the log plot for save
 								bscantemp2.convertTo(bscantemp2, CV_8UC1, 255.0);		// imwrite needs 0-255 CV_8U
 								sprintf(filename, "bscan%03d-%03d", indexi, ii);
 								savematasimage(pathname, dirname, filename, bscantemp2);
@@ -1235,7 +1269,10 @@ int main(int argc, char *argv[])
 								// apply bscanthresholding
 								bscandispmanual = max(bscandispmanual, bscanthreshold);
 
-								normalize(bscandispmanual, bscandispmanual, 0, 1, NORM_MINMAX);	// normalize the log plot for display
+								if (rowwisenormalize)
+									normalizerows(bscandispmanual, bscandispmanual, 0, 1);
+								else
+									normalize(bscandispmanual, bscandispmanual, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 								bscandispmanual.convertTo(bscandispmanual, CV_8UC1, 255.0);
 								applyColorMap(bscandispmanual, cmagImanual, COLORMAP_JET);
 
@@ -1268,7 +1305,10 @@ int main(int argc, char *argv[])
 										log(bscantemp3, bscantemp3);					// switch to logarithmic scale
 																						//convert to dB = 20 log10(value), from the natural log above
 										bscantemp3 = 20.0 * bscantemp3 / 2.303;
-										normalize(bscantemp3, bscantemp3, 0, 1, NORM_MINMAX);	// normalize the log plot for save
+										if (rowwisenormalize)
+											normalizerows(bscantemp3, bscantemp3, 0, 1);
+										else
+											normalize(bscantemp3, bscantemp3, 0, 1, NORM_MINMAX);	// normalize the log plot for save
 										bscantemp3.convertTo(bscantemp3, CV_8UC1, 255.0);		// imwrite needs 0-255 CV_8U
 										sprintf(filename, "bscanm%03d-%03d", manualindexi, ii);
 										savematasimage(pathname, dirname, filename, bscantemp3);
