@@ -37,7 +37,9 @@
 * D key decreases exposure time by 10 ms
 * ] key increases thresholding in final Bscan
 * [ key decreases thresholding in final Bscan
-* ESC key quits
+* 9 or ( key decreases the index of the reported ascan max value
+* 0 or ) key increases the index of the reported ascan max value 
+* ESC, x or X key quits
 *
 *
 *
@@ -275,6 +277,7 @@ int main(int argc, char *argv[])
 	unsigned int offsetx = 0, offsety = 0;
 	unsigned int indexi, manualindexi, averages = 1, opw, oph;
 	uint  indextemp, indextempl;
+	uint ascanat=20;
 
 
 	int camtime = 1, camgain = 1, camspeed = 1, cambinx = 2, cambiny = 2, usbtraffic = 10;
@@ -977,6 +980,9 @@ int main(int argc, char *argv[])
 					opmvector.reshape(0, 1);	//make it into a row array
 					minMaxLoc(opmvector, &minVal, &maxVal);
 					printf("Max intensity = %d\n", int(floor(maxVal)));
+					minMaxLoc(bscandb.col(ascanat), &minVal, &maxVal);
+					printf("Max of Ascan at %d = %f dB\n", ascanat, maxVal);
+					printf("Min of Ascan at %d = %f dB\n", ascanat, minVal);
 					fps = 0;
 					t_start = time(NULL);
 				}
@@ -1117,10 +1123,7 @@ int main(int argc, char *argv[])
 					// apply bscanthresholding
 					// MatExpr max(const Mat& a, double s)
 					bscandisp = max(bscandisp, bscanthreshold);
-					if (rowwisenormalize)
-						normalizerows(bscandisp, bscandisp, 0, 1);
-					else
-						normalize(bscandisp, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
+					normalize(bscandisp, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 					bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
 					if (jthresholding)
 					{
@@ -1131,6 +1134,7 @@ int main(int argc, char *argv[])
 					}
 					else
 					applyColorMap(bscandisp, cmagI, COLORMAP_JET);
+					putText(cmagI,"^",Point(ascanat-10, numdisplaypoints), FONT_HERSHEY_COMPLEX, 1,(255,255,255),3,8);
 					
 					imshow("Bscan", cmagI);
 					
@@ -1172,10 +1176,7 @@ int main(int argc, char *argv[])
 						{
 							sprintf(filename, "linearized%03d", indexi);
 							savematasdata(outfile, filename, data_ylin);
-							if (rowwisenormalize)
-								normalizerows(data_ylin, bscantemp2, 0, 255);
-							else
-								normalize(data_ylin, bscantemp2, 0, 255, NORM_MINMAX);	// normalize the log plot for save
+							normalize(data_ylin, bscantemp2, 0, 255, NORM_MINMAX);	// normalize the log plot for save
 							bscantemp2.convertTo(bscantemp2, CV_8UC1, 1.0);		// imwrite needs 0-255 CV_8U
 							savematasimage(pathname, dirname, filename, bscantemp2);
 							// in this case, formerly active buffer is saved to disk when bkeypressed
@@ -1213,10 +1214,7 @@ int main(int argc, char *argv[])
 								log(bscantemp2, bscantemp2);					// switch to logarithmic scale
 																				//convert to dB = 20 log10(value), from the natural log above
 								bscantemp2 = 20.0 * bscantemp2 / 2.303;
-								if (rowwisenormalize)
-									normalizerows(bscantemp2, bscantemp2, 0, 1);
-								else
-									normalize(bscantemp2, bscantemp2, 0, 1, NORM_MINMAX);	// normalize the log plot for save
+								normalize(bscantemp2, bscantemp2, 0, 1, NORM_MINMAX);	// normalize the log plot for save
 								bscantemp2.convertTo(bscantemp2, CV_8UC1, 255.0);		// imwrite needs 0-255 CV_8U
 								sprintf(filename, "bscan%03d-%03d", indexi, ii);
 								savematasimage(pathname, dirname, filename, bscantemp2);
@@ -1269,14 +1267,13 @@ int main(int argc, char *argv[])
 								// apply bscanthresholding
 								bscandispmanual = max(bscandispmanual, bscanthreshold);
 
-								if (rowwisenormalize)
-									normalizerows(bscandispmanual, bscandispmanual, 0, 1);
-								else
-									normalize(bscandispmanual, bscandispmanual, 0, 1, NORM_MINMAX);	// normalize the log plot for display
+								normalize(bscandispmanual, bscandispmanual, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 								bscandispmanual.convertTo(bscandispmanual, CV_8UC1, 255.0);
 								applyColorMap(bscandispmanual, cmagImanual, COLORMAP_JET);
+								//putText(img,'OpenCV',(10,500), font, 4,(255,255,255),2,cv2.LINE_AA)
 
 								imshow("Bscanm", cmagImanual);
+								
 
 								// and save - similar code as in skeypressed
 								//////////////////////////////////////////
@@ -1305,10 +1302,7 @@ int main(int argc, char *argv[])
 										log(bscantemp3, bscantemp3);					// switch to logarithmic scale
 																						//convert to dB = 20 log10(value), from the natural log above
 										bscantemp3 = 20.0 * bscantemp3 / 2.303;
-										if (rowwisenormalize)
-											normalizerows(bscantemp3, bscantemp3, 0, 1);
-										else
-											normalize(bscantemp3, bscantemp3, 0, 1, NORM_MINMAX);	// normalize the log plot for save
+										normalize(bscantemp3, bscantemp3, 0, 1, NORM_MINMAX);	// normalize the log plot for save
 										bscantemp3.convertTo(bscantemp3, CV_8UC1, 255.0);		// imwrite needs 0-255 CV_8U
 										sprintf(filename, "bscanm%03d-%03d", manualindexi, ii);
 										savematasimage(pathname, dirname, filename, bscantemp3);
@@ -1435,10 +1429,13 @@ int main(int argc, char *argv[])
 				{
 
 				case 27: //ESC key
+				case 'x':
+				case 'X':
 					doneflag = 1;
 					break;
 
 				case '+':
+				case '=':
 
 					camtime = camtime + 100;
 					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
@@ -1454,6 +1451,7 @@ int main(int argc, char *argv[])
 					break;
 
 				case '-':
+				case '_':
 
 					camtime = camtime - 100;
 					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
@@ -1526,26 +1524,31 @@ int main(int argc, char *argv[])
 					break;
 
 				case 's':
+				case 'S':
 
 					skeypressed = 1;
 					break;
 
 				case 'b':
+				case 'B':
 
 					bkeypressed = 1;
 					break;
 
 				case 'p':
+				case 'P':
 
 					pkeypressed = 1;
 					break;
 					
 				case 'j':
+				case 'J':
 
 					jkeypressed = 1;
 					break;
 					
 				case 'c':
+				case 'C':
 
 					ckeypressed = 1;
 					break;
@@ -1560,6 +1563,38 @@ int main(int argc, char *argv[])
 
 					bscanthreshold -= 1.0;
 					printf("bscanthreshold = %f \n",bscanthreshold);
+					break;
+					
+				case '(':
+					if (ascanat > 10)
+						ascanat -= 10;
+					
+					printf("ascanat = %d \n",ascanat);
+					break;
+				case '9':
+					if (ascanat > 0)
+						ascanat -= 1;
+					
+					printf("ascanat = %d \n",ascanat);
+					minMaxLoc(bscandb.col(ascanat), &minVal, &maxVal);
+					printf("Max of Ascan at %d = %f dB\n", ascanat, maxVal);
+					break;
+					
+				case ')':
+					if (ascanat < (oph-11))
+						ascanat += 10;
+					
+					printf("ascanat = %d \n",ascanat);
+					minMaxLoc(bscandb.col(ascanat), &minVal, &maxVal);
+					printf("Max of Ascan at %d = %f dB\n", ascanat, maxVal);
+					break;
+				case '0':
+					if (ascanat < (oph-1))
+						ascanat += 1;
+					
+					printf("ascanat = %d \n",ascanat);
+					minMaxLoc(bscandb.col(ascanat), &minVal, &maxVal);
+					printf("Max of Ascan at %d = %f dB\n", ascanat, maxVal);
 					break;
 
 
