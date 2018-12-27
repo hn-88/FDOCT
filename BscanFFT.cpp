@@ -1465,6 +1465,8 @@ int main(int argc, char *argv[])
 				case '_':
 
 					camtime = camtime - 100;
+					if (camtime < 0)
+						camtime=0;
 					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 					if (ret == QHYCCD_SUCCESS)
 					{
@@ -1494,6 +1496,8 @@ int main(int argc, char *argv[])
 				case 'D':
 
 					camtime = camtime - 10000;
+					if (camtime < 0)
+						camtime=0;
 					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 					if (ret == QHYCCD_SUCCESS)
 					{
@@ -1522,6 +1526,8 @@ int main(int argc, char *argv[])
 				case 'd':
 
 					camtime = camtime - 1000;
+					if (camtime < 0)
+						camtime=0;
 					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 					if (ret == QHYCCD_SUCCESS)
 					{
