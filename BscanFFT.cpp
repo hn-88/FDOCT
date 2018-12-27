@@ -88,6 +88,18 @@ inline void normalizerows(Mat& src, Mat& dst, double lowerlim, double upperlim)
 	 
 }
 
+inline void printMinMaxAscan(Mat bscandb, uint ascanat)
+{
+	Mat ascan;
+	double minVal, maxVal;
+	bscandb.col(ascanat).copyTo(ascan);
+	ascan.row(4).copyTo(ascan.row(1));	// masking out the DC in the display
+	ascan.row(4).copyTo(ascan.row(0));
+	minMaxLoc(ascan, &minVal, &maxVal);
+	printf("Max of Ascan at %d = %f dB\n", ascanat, maxVal);
+	printf("Min of Ascan at %d = %f dB\n", ascanat, minVal);
+}
+					
 inline void makeonlypositive(Mat& src, Mat& dst)
 {
 	// from https://stackoverflow.com/questions/48313249/opencv-convert-all-negative-values-to-zero
@@ -501,6 +513,7 @@ int main(int argc, char *argv[])
 	double pi = 3.141592653589793;
 
 	double minVal, maxVal, pixVal;
+	Mat ascan;
 	//minMaxLoc( m, &minVal, &maxVal, &minLoc, &maxLoc );
 
 	double deltalambda = (lambdamax - lambdamin) / data_y.cols;
@@ -980,9 +993,7 @@ int main(int argc, char *argv[])
 					opmvector.reshape(0, 1);	//make it into a row array
 					minMaxLoc(opmvector, &minVal, &maxVal);
 					printf("Max intensity = %d\n", int(floor(maxVal)));
-					minMaxLoc(bscandb.col(ascanat), &minVal, &maxVal);
-					printf("Max of Ascan at %d = %f dB\n", ascanat, maxVal);
-					printf("Min of Ascan at %d = %f dB\n", ascanat, minVal);
+					printMinMaxAscan(bscandb, ascanat);
 					fps = 0;
 					t_start = time(NULL);
 				}
@@ -1134,7 +1145,8 @@ int main(int argc, char *argv[])
 					}
 					else
 					applyColorMap(bscandisp, cmagI, COLORMAP_JET);
-					putText(cmagI,"^",Point(ascanat-10, numdisplaypoints), FONT_HERSHEY_COMPLEX, 1,(255,255,255),3,8);
+					putText(cmagI,"^",Point(ascanat-10, numdisplaypoints), FONT_HERSHEY_COMPLEX, 1,Scalar(255,255,255),3,8);
+					//putText(img,"Text",location, fontface, fonstscale,colorbgr,thickness,linetype, bool bottomLeftOrigin=false);
 					
 					imshow("Bscan", cmagI);
 					
@@ -1270,8 +1282,7 @@ int main(int argc, char *argv[])
 								normalize(bscandispmanual, bscandispmanual, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 								bscandispmanual.convertTo(bscandispmanual, CV_8UC1, 255.0);
 								applyColorMap(bscandispmanual, cmagImanual, COLORMAP_JET);
-								//putText(img,'OpenCV',(10,500), font, 4,(255,255,255),2,cv2.LINE_AA)
-
+								
 								imshow("Bscanm", cmagImanual);
 								
 
@@ -1570,14 +1581,15 @@ int main(int argc, char *argv[])
 						ascanat -= 10;
 					
 					printf("ascanat = %d \n",ascanat);
+					printMinMaxAscan(bscandb, ascanat);
 					break;
+					
 				case '9':
 					if (ascanat > 0)
 						ascanat -= 1;
 					
 					printf("ascanat = %d \n",ascanat);
-					minMaxLoc(bscandb.col(ascanat), &minVal, &maxVal);
-					printf("Max of Ascan at %d = %f dB\n", ascanat, maxVal);
+					printMinMaxAscan(bscandb, ascanat);
 					break;
 					
 				case ')':
@@ -1585,16 +1597,14 @@ int main(int argc, char *argv[])
 						ascanat += 10;
 					
 					printf("ascanat = %d \n",ascanat);
-					minMaxLoc(bscandb.col(ascanat), &minVal, &maxVal);
-					printf("Max of Ascan at %d = %f dB\n", ascanat, maxVal);
+					printMinMaxAscan(bscandb, ascanat);
 					break;
 				case '0':
 					if (ascanat < (oph-1))
 						ascanat += 1;
 					
 					printf("ascanat = %d \n",ascanat);
-					minMaxLoc(bscandb.col(ascanat), &minVal, &maxVal);
-					printf("Max of Ascan at %d = %f dB\n", ascanat, maxVal);
+					printMinMaxAscan(bscandb, ascanat);
 					break;
 
 
