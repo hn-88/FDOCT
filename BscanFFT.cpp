@@ -29,12 +29,13 @@
 *
 * Save individual frames on averaging if option chosen in ini file
 *
-* + key increases exposure time by 0.1 ms
-* - key decreases exposure time by 0.1 ms
+* + (or =) key increases exposure time by 0.1 ms
+* - (or _) key decreases exposure time by 0.1 ms
 * u key increases exposure time by 1 ms
 * d key decreases exposure time by 1 ms
 * U key increases exposure time by 10 ms
 * D key decreases exposure time by 10 ms
+* A key toggles averaging
 * ] key increases thresholding in final Bscan
 * [ key decreases thresholding in final Bscan
 * 9 or ( key decreases the index of the reported ascan max value
@@ -290,6 +291,7 @@ int main(int argc, char *argv[])
 	unsigned int indexi, manualindexi, averages = 1, opw, oph;
 	uint  indextemp, indextempl;
 	uint ascanat=20;
+	uint averagestoggle = 1;
 
 
 	int camtime = 1, camgain = 1, camspeed = 1, cambinx = 2, cambiny = 2, usbtraffic = 10;
@@ -398,6 +400,7 @@ int main(int argc, char *argv[])
 		
 		lambdamin = atof(lambdaminstr);
 		lambdamax = atof(lambdamaxstr);
+		averagestoggle = averages;
 	}
 
 	else std::cout << "Unable to open ini file, using defaults.";
@@ -904,7 +907,7 @@ int main(int argc, char *argv[])
 							// since no further 
 							// and all accumulation is done
 							Mat activeMat, activeMatb, activeMat64;
-							for (uint ii = 0; ii<averages; ii++)
+							for (uint ii = 0; ii<averagestoggle; ii++)
 							{
 								if (zeroisactive)
 								{
@@ -933,7 +936,7 @@ int main(int argc, char *argv[])
 						
 						else 
 						{
-							if (baccumcount < averages)
+							if (baccumcount < averagestoggle)
 							{
 								accumulate(data_y, baccum);
 								// save the raw frame to buffer
@@ -956,7 +959,7 @@ int main(int argc, char *argv[])
 						
 						if (manualaveraging)
 								{
-									averages = 1;
+									averagestoggle = 1;
 								}
 
 				}
@@ -1081,7 +1084,7 @@ int main(int argc, char *argv[])
 				magnitude(planes[0], planes[1], magI);
 
 
-				if (indextemp < averages)
+				if (indextemp < averagestoggle) 
 				{
 					bscantemp = magI.colRange(0, numfftpoints/2);
 					bscantemp.convertTo(bscantemp, CV_64F);
@@ -1099,7 +1102,7 @@ int main(int argc, char *argv[])
 
 				}
 				
-				if (indextemp == averages)
+				if (indextemp >= averagestoggle) 
 				{
 					indextemp = 0;
 					// we will also toggle the buffers, at the end of this 'else' code block
@@ -1195,7 +1198,7 @@ int main(int argc, char *argv[])
 							// since no further 
 							// and all accumulation is done
 							Mat activeMat;
-							for (uint ii = 0; ii<averages; ii++)
+							for (uint ii = 0; ii<averagestoggle; ii++)
 							{
 								if (zeroisactive)
 								{
@@ -1215,7 +1218,7 @@ int main(int argc, char *argv[])
 
 						if (saveframes == 1)
 						{
-							for (uint ii = 0; ii<averages; ii++)
+							for (uint ii = 0; ii<averagestoggle; ii++)
 							{
 								// save the bscansave array after processing
 								if (zeroisactive)
@@ -1235,7 +1238,7 @@ int main(int argc, char *argv[])
 								{
 									// inactive buffer is saved to disk when skeypressed
 									// and all accumulation is done
-									for (uint ii = 0; ii<averages; ii++)
+									for (uint ii = 0; ii<averagestoggle; ii++)
 									{
 										sprintf(filename, "rawframe%03d-%03d", indexi,ii);
 										if (zeroisactive)
@@ -1613,7 +1616,14 @@ int main(int argc, char *argv[])
 					printMinMaxAscan(bscandb, ascanat);
 					break;
 
-
+				case 'a':
+				case 'A':
+					if (averagestoggle==1)
+						averagestoggle = averages;
+					else
+						averagestoggle=1;
+					printf("Now averaging %d bscans.\n",averagestoggle);	
+					break;
 
 				default:
 					break;
