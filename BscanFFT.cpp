@@ -89,14 +89,18 @@ inline void normalizerows(Mat& src, Mat& dst, double lowerlim, double upperlim)
 	 
 }
 
-inline void printMinMaxAscan(Mat bscandb, uint ascanat)
+inline void printMinMaxAscan(Mat bscandb, uint ascanat, int numdisplaypoints)
 {
-	Mat ascan;
+	Mat ascan, ascandisp;
 	double minVal, maxVal;
 	bscandb.col(ascanat).copyTo(ascan);
 	ascan.row(4).copyTo(ascan.row(1));	// masking out the DC in the display
 	ascan.row(4).copyTo(ascan.row(0));
-	minMaxLoc(ascan, &minVal, &maxVal);
+	ascandisp = ascan.rowRange(0, numdisplaypoints);
+	//debug
+	//normalize(ascan, ascandebug, 0, 1, NORM_MINMAX);
+	//imshow("debug", ascandebug);
+	minMaxLoc(ascandisp, &minVal, &maxVal);
 	printf("Max of Ascan at %d = %f dB\n", ascanat, maxVal);
 	printf("Min of Ascan at %d = %f dB\n", ascanat, minVal);
 }
@@ -996,7 +1000,7 @@ int main(int argc, char *argv[])
 					opmvector.reshape(0, 1);	//make it into a row array
 					minMaxLoc(opmvector, &minVal, &maxVal);
 					printf("Max intensity = %d\n", int(floor(maxVal)));
-					printMinMaxAscan(bscandb, ascanat);
+					printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
 					fps = 0;
 					t_start = time(NULL);
 				}
@@ -1109,7 +1113,7 @@ int main(int argc, char *argv[])
 					
 					transpose(bscantransposed, bscan);
 
-					bscan += Scalar::all(0.1);   	// to prevent log of 0  
+					bscan += Scalar::all(0.00001);   	// to prevent log of 0  
 					// 20.0 * log(0.1) / 2.303 = -20 dB, which is sufficient 
 					
 					if (jthresholding)
@@ -1590,7 +1594,7 @@ int main(int argc, char *argv[])
 						ascanat -= 10;
 					
 					printf("ascanat = %d \n",ascanat);
-					printMinMaxAscan(bscandb, ascanat);
+					printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
 					break;
 					
 				case '9':
@@ -1598,7 +1602,7 @@ int main(int argc, char *argv[])
 						ascanat -= 1;
 					
 					printf("ascanat = %d \n",ascanat);
-					printMinMaxAscan(bscandb, ascanat);
+					printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
 					break;
 					
 				case ')':
@@ -1606,14 +1610,14 @@ int main(int argc, char *argv[])
 						ascanat += 10;
 					
 					printf("ascanat = %d \n",ascanat);
-					printMinMaxAscan(bscandb, ascanat);
+					printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
 					break;
 				case '0':
 					if (ascanat < (oph-1))
 						ascanat += 1;
 					
 					printf("ascanat = %d \n",ascanat);
-					printMinMaxAscan(bscandb, ascanat);
+					printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
 					break;
 
 				case 'a':
