@@ -317,6 +317,7 @@ int main(int argc, char *argv[])
 	uint increasefftpointsmultiplier = 1;
 	double bscanthreshold = -30.0;
 	bool rowwisenormalize = 0;
+	bool donotnormalize = 1;
 
 	w = 640;
 	h = 480;
@@ -400,6 +401,8 @@ int main(int argc, char *argv[])
 		infile >> increasefftpointsmultiplier;
 		infile >> tempstring;
 		infile >> rowwisenormalize;
+		infile >> tempstring;
+		infile >> donotnormalize;
 		infile.close();
 		
 		lambdamin = atof(lambdaminstr);
@@ -932,7 +935,7 @@ int main(int argc, char *argv[])
 							baccum.copyTo(data_yb);		// saves the "background" or source spectrum
 							if (rowwisenormalize)
 								normalizerows(data_yb,data_yb,0.0001, 1);
-							else
+							if (!donotnormalize)
 								normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
 							bkeypressed = 0;
 							
@@ -953,7 +956,7 @@ int main(int argc, char *argv[])
 								
 								if (rowwisenormalize)
 									normalizerows(data_yb, data_yb, 0.0001, 1);
-								else
+								if (!donotnormalize)
 									normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
 								bkeypressed = 0;
 								baccumcount = 0;
@@ -986,7 +989,7 @@ int main(int argc, char *argv[])
 					data_yp.convertTo(data_yp, CV_64F);
 					if (rowwisenormalize)
 						normalizerows(data_yp, data_yp, 0, 1);
-					else
+					if (!donotnormalize)
 						normalize(data_yp, data_yp, 0, 1, NORM_MINMAX);
 					pkeypressed = 0;
 
@@ -1012,7 +1015,7 @@ int main(int argc, char *argv[])
 				data_y.convertTo(data_y, CV_64F);
 				if (rowwisenormalize)
 					normalizerows(data_y, data_y, 0, 1);
-				else
+				if (!donotnormalize)
 					normalize(data_y, data_y, 0, 1, NORM_MINMAX);
 				//data_yb.convertTo(data_yb, CV_64F);
 				//
