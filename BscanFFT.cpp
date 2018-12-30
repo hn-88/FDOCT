@@ -840,8 +840,8 @@ int main(int argc, char *argv[])
 		indexi = 0;
 		manualindexi = 0;
 		indextemp = 0;
-		bscantransposed = Mat::zeros(Size(numfftpoints/2, oph), CV_64F);
-		manualaccum = Mat::zeros(Size(oph, numfftpoints/2), CV_64F); // this is transposed version
+		bscantransposed = Mat::zeros(Size(numdisplaypoints, oph), CV_64F);
+		manualaccum = Mat::zeros(Size(oph, numdisplaypoints), CV_64F); // this is transposed version
 																	   //bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
 
 		for (uint p = 0; p<(opw); p++)
@@ -1076,17 +1076,6 @@ int main(int argc, char *argv[])
 
 				// InvFFT
 
-				nr = getOptimalDFTSize(data_ylin.rows);	//128 when taking transpose(opm, data_y);
-				nc = getOptimalDFTSize(data_ylin.cols);	//96
-														//nc = nc * 4;		// 4x oversampling
-
-
-														//copyMakeBorder(data_ylin, padded, 0, nr - data_ylin.rows, 0, nc - data_ylin.cols, BORDER_CONSTANT, Scalar::all(0));
-														//normalize(data_ylin, paddedn, 0, 1, NORM_MINMAX);
-														//imshow("linearized", paddedn);
-
-				// smoothing by weighted moving average
-				//data_ylin = smoothmovavg(data_ylin, 5);
 				Mat planes[] = { Mat_<float>(data_ylin), Mat::zeros(data_ylin.size(), CV_32F) };
 				Mat complexI;
 				merge(planes, 2, complexI);         // Add to the expanded another plane with zeros
@@ -1101,7 +1090,7 @@ int main(int argc, char *argv[])
 
 				if (indextemp < averagestoggle) 
 				{
-					bscantemp = magI.colRange(0, numfftpoints/2);
+					bscantemp = magI.colRange(0, numdisplaypoints);
 					bscantemp.convertTo(bscantemp, CV_64F);
 					accumulate(bscantemp, bscantransposed);
 					if (saveframes == 1)
@@ -1140,7 +1129,7 @@ int main(int argc, char *argv[])
 						jmaskt = jmask.rowRange(0, numdisplaypoints);
 					}
 
-
+					
 					log(bscan, bscanlog);					// switch to logarithmic scale
 															//convert to dB = 20 log10(value), from the natural log above
 					bscandb = 20.0 * bscanlog / 2.303;
@@ -1293,6 +1282,7 @@ int main(int argc, char *argv[])
 							{
 								manualaccumcount = 0;
 								manualaccum = manualaccum / manualaverages;
+								printf("depth of manualaccum is %d \n", manualaccum.depth());
 								log(manualaccum, manualaccum);					// switch to logarithmic scale
 																				//convert to dB = 20 log10(value), from the natural log above
 								bscandispmanual = 20.0 * manualaccum / 2.303;
@@ -1316,7 +1306,7 @@ int main(int argc, char *argv[])
 								savematasimage(pathname, dirname, filename, bscandispmanual);
 								savematasimage(pathname, dirname, filenamec, cmagImanual);
 								
-								manualaccum = Mat::zeros(Size(oph, numfftpoints/2), CV_64F);
+								manualaccum = Mat::zeros(Size(oph, numdisplaypoints), CV_64F);
 
 
 								if (saveframes == 1)
@@ -1330,7 +1320,9 @@ int main(int argc, char *argv[])
 										else
 											bscanmanualsave0[ii].copyTo(bscantemp3);
 											
-										bscantemp3 += Scalar::all(0.000001);   	// to prevent log of 0                 
+										bscantemp3.convertTo(bscantemp3, CV_64F);
+										bscantemp3 += Scalar::all(0.000001);   	// to prevent log of 0       
+										          
 										log(bscantemp3, bscantemp3);					// switch to logarithmic scale
 																						//convert to dB = 20 log10(value), from the natural log above
 										bscantemp3 = 20.0 * bscantemp3 / 2.303;
@@ -1352,7 +1344,7 @@ int main(int argc, char *argv[])
 
 					} // end if skeypressed
 
-					bscantransposed = Mat::zeros(Size(numfftpoints / 2, oph), CV_64F);
+					bscantransposed = Mat::zeros(Size(numdisplaypoints, oph), CV_64F);
 					
 					// toggle the buffers
 					if (zeroisactive)
