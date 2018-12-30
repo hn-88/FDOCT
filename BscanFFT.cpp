@@ -96,6 +96,8 @@ inline void printMinMaxAscan(Mat bscandb, uint ascanat, int numdisplaypoints)
 	bscandb.col(ascanat).copyTo(ascan);
 	ascan.row(4).copyTo(ascan.row(1));	// masking out the DC in the display
 	ascan.row(4).copyTo(ascan.row(0));
+	ascan.row(4).copyTo(ascan.row(2));
+	ascan.row(4).copyTo(ascan.row(3));
 	ascandisp = ascan.rowRange(0, numdisplaypoints);
 	//debug
 	//normalize(ascan, ascandebug, 0, 1, NORM_MINMAX);
@@ -507,6 +509,7 @@ int main(int argc, char *argv[])
 	int nr, nc;
 
 	Mat m, opm, opmvector, bscan, bscanlog, bscandb, bscandisp, bscandispmanual, bscantemp, bscantemp2, bscantemp3, bscantransposed, chan[3];
+	Mat tempmat;
 	Mat bscandispj;
 	Mat mraw;
 
@@ -937,6 +940,9 @@ int main(int argc, char *argv[])
 								normalizerows(data_yb,data_yb,0.0001, 1);
 							if (!donotnormalize)
 								normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
+							else
+								data_yb = data_yb / averagestoggle;
+								
 							bkeypressed = 0;
 							
 						}	
@@ -958,6 +964,8 @@ int main(int argc, char *argv[])
 									normalizerows(data_yb, data_yb, 0.0001, 1);
 								if (!donotnormalize)
 									normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
+								else
+									data_yb = data_yb / averagestoggle;
 								bkeypressed = 0;
 								baccumcount = 0;
 								
@@ -1115,7 +1123,7 @@ int main(int argc, char *argv[])
 					// we will also toggle the buffers, at the end of this 'else' code block
 					
 					transpose(bscantransposed, bscan);
-
+					bscan = bscan / averagestoggle;
 					bscan += Scalar::all(0.00001);   	// to prevent log of 0  
 					// 20.0 * log(0.1) / 2.303 = -20 dB, which is sufficient 
 					
@@ -1140,7 +1148,9 @@ int main(int argc, char *argv[])
 					bscandb.row(4).copyTo(bscandb.row(1));	// masking out the DC in the display
                     bscandb.row(4).copyTo(bscandb.row(0));
 
-					bscandisp=bscandb.rowRange(0, numdisplaypoints);
+					//bscandisp=bscandb.rowRange(0, numdisplaypoints);
+					tempmat = bscandb.rowRange(0, numdisplaypoints);
+					tempmat.copyTo(bscandisp);
 					// apply bscanthresholding
 					// MatExpr max(const Mat& a, double s)
 					bscandisp = max(bscandisp, bscanthreshold);
@@ -1282,6 +1292,7 @@ int main(int argc, char *argv[])
 							else
 							{
 								manualaccumcount = 0;
+								manualaccum = manualaccum / manualaverages;
 								log(manualaccum, manualaccum);					// switch to logarithmic scale
 																				//convert to dB = 20 log10(value), from the natural log above
 								bscandispmanual = 20.0 * manualaccum / 2.303;
