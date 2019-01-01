@@ -97,6 +97,8 @@ inline void printMinMaxAscan(Mat bscandb, uint ascanat, int numdisplaypoints)
 	bscandb.col(ascanat).copyTo(ascan);
 	ascan.row(4).copyTo(ascan.row(1));	// masking out the DC in the display
 	ascan.row(4).copyTo(ascan.row(0));
+	ascan.row(4).copyTo(ascan.row(2));
+	ascan.row(4).copyTo(ascan.row(3));
 	ascandisp = ascan.rowRange(0, numdisplaypoints);
 	//debug
 	//normalize(ascan, ascandebug, 0, 1, NORM_MINMAX);
@@ -113,7 +115,7 @@ inline void makeonlypositive(Mat& src, Mat& dst)
      
 }
 
-inline Mat zeropadrowwise(Mat sm, int sn)
+inline Mat zeropadrowwise(Mat sm, int sn, bool bandpassfilter)
 {
 	// increase fft points sn times 
 	// newnumcols = numcols*sn;
@@ -161,6 +163,26 @@ inline Mat zeropadrowwise(Mat sm, int sn)
     LHS.copyTo(tmp);
     RHS.copyTo(LHS);
     tmp.copyTo(RHS);
+    
+    if (bandpassfilter)
+    {
+		// blank out 80% of the points
+		// first 40% and last 40%
+		// since DC is now at the centre
+		int dcl = fouriertransform.cols/2 - floor(fouriertransform.cols/10);
+		int dcr = fouriertransform.cols/2 + floor(fouriertransform.cols/10);
+		Mat LHSblank(fouriertransform, Rect(0, 0, dcl, fouriertransform.rows));   // Create a ROI per half
+		Mat RHSblank(fouriertransform, Rect(dcr, 0, dcl, fouriertransform.rows)); //  Rect(topleftx, toplefty, w, h)
+		LHSblank=Scalar::all(0);
+		RHSblank=Scalar::all(0);
+		
+		// also blank out the DC
+		int dcvals = 3;
+		dcl = fouriertransform.cols/2 - dcvals;
+		Mat DCblank(fouriertransform, Rect(dcl, 0, dcvals*2, fouriertransform.rows));
+		DCblank=Scalar::all(0);
+		
+	}
 	
 	copyMakeBorder( fouriertransform, fouriertransformzp, 0, 0, floor((newnumcols-numcols)/2), floor((newnumcols-numcols)/2), BORDER_CONSTANT, 0.0 );
 			// this does the zero pad - copyMakeBorder(src, dest, top, bottom, left, right, borderType, value)
@@ -320,6 +342,7 @@ int main(int argc, char *argv[])
 	double bscanthreshold = -30.0;
 	bool rowwisenormalize = 0;
 	bool donotnormalize = 1;
+	bool bandpassfilter = 0;
 
 	w = 640;
 	h = 480;
@@ -405,6 +428,8 @@ int main(int argc, char *argv[])
 		infile >> rowwisenormalize;
 		infile >> tempstring;
 		infile >> donotnormalize;
+		infile >> tempstring;
+		infile >> bandpassfilter;
 		infile.close();
 		
 		lambdamin = atof(lambdaminstr);
@@ -509,6 +534,7 @@ int main(int argc, char *argv[])
 	int nr, nc;
 
 	Mat m, opm, opmvector, bscan, bscanlog, bscandb, bscandisp, bscandispmanual, bscantemp, bscantemp2, bscantemp3, bscantransposed, chan[3];
+	Mat tempmat;
 	Mat bscandispj;
 	Mat mraw;
 
@@ -839,8 +865,8 @@ int main(int argc, char *argv[])
 		indexi = 0;
 		manualindexi = 0;
 		indextemp = 0;
-		bscantransposed = Mat::zeros(Size(numfftpoints/2, oph), CV_64F);
-		manualaccum = Mat::zeros(Size(oph, numfftpoints/2), CV_64F); // this is transposed version
+		bscantransposed = Mat::zeros(Size(numdisplaypoints, oph), CV_64F);
+		manualaccum = Mat::zeros(Size(oph, numdisplaypoints), CV_64F); // this is transposed version
 																	   //bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
 
 		for (uint p = 0; p<(opw); p++)
@@ -939,6 +965,9 @@ int main(int argc, char *argv[])
 								normalizerows(data_yb,data_yb,0.0001, 1);
 							if (!donotnormalize)
 								normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
+							else
+								data_yb = data_yb / averagestoggle;
+								
 							bkeypressed = 0;
 							
 						}	
@@ -960,6 +989,8 @@ int main(int argc, char *argv[])
 									normalizerows(data_yb, data_yb, 0.0001, 1);
 								if (!donotnormalize)
 									normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
+								else
+									data_yb = data_yb / averagestoggle;
 								bkeypressed = 0;
 								baccumcount = 0;
 								
@@ -1036,7 +1067,7 @@ int main(int argc, char *argv[])
 				
 				//increasing number of points by zero padding
 				if (increasefftpointsmultiplier > 1)
-					data_y = zeropadrowwise(data_y, increasefftpointsmultiplier);
+					data_y = zeropadrowwise(data_y, increasefftpointsmultiplier, bandpassfilter);
 
 
 				// interpolate to linear k space
@@ -1070,17 +1101,6 @@ int main(int argc, char *argv[])
 
 				// InvFFT
 
-				nr = getOptimalDFTSize(data_ylin.rows);	//128 when taking transpose(opm, data_y);
-				nc = getOptimalDFTSize(data_ylin.cols);	//96
-														//nc = nc * 4;		// 4x oversampling
-
-
-														//copyMakeBorder(data_ylin, padded, 0, nr - data_ylin.rows, 0, nc - data_ylin.cols, BORDER_CONSTANT, Scalar::all(0));
-														//normalize(data_ylin, paddedn, 0, 1, NORM_MINMAX);
-														//imshow("linearized", paddedn);
-
-				// smoothing by weighted moving average
-				//data_ylin = smoothmovavg(data_ylin, 5);
 				Mat planes[] = { Mat_<float>(data_ylin), Mat::zeros(data_ylin.size(), CV_32F) };
 				Mat complexI;
 				merge(planes, 2, complexI);         // Add to the expanded another plane with zeros
@@ -1095,7 +1115,7 @@ int main(int argc, char *argv[])
 
 				if (indextemp < averagestoggle) 
 				{
-					bscantemp = magI.colRange(0, numfftpoints/2);
+					bscantemp = magI.colRange(0, numdisplaypoints);
 					bscantemp.convertTo(bscantemp, CV_64F);
 					accumulate(bscantemp, bscantransposed);
 					if (saveframes == 1)
@@ -1117,7 +1137,7 @@ int main(int argc, char *argv[])
 					// we will also toggle the buffers, at the end of this 'else' code block
 					
 					transpose(bscantransposed, bscan);
-
+					bscan = bscan / averagestoggle;
 					bscan += Scalar::all(0.00001);   	// to prevent log of 0  
 					// 20.0 * log(0.1) / 2.303 = -20 dB, which is sufficient 
 					
@@ -1134,7 +1154,7 @@ int main(int argc, char *argv[])
 						jmaskt = jmask.rowRange(0, numdisplaypoints);
 					}
 
-
+					
 					log(bscan, bscanlog);					// switch to logarithmic scale
 															//convert to dB = 20 log10(value), from the natural log above
 					bscandb = 20.0 * bscanlog / 2.303;
@@ -1142,7 +1162,9 @@ int main(int argc, char *argv[])
 					bscandb.row(4).copyTo(bscandb.row(1));	// masking out the DC in the display
                     bscandb.row(4).copyTo(bscandb.row(0));
 
-					bscandisp=bscandb.rowRange(0, numdisplaypoints);
+					//bscandisp=bscandb.rowRange(0, numdisplaypoints);
+					tempmat = bscandb.rowRange(0, numdisplaypoints);
+					tempmat.copyTo(bscandisp);
 					// apply bscanthresholding
 					// MatExpr max(const Mat& a, double s)
 					bscandisp = max(bscandisp, bscanthreshold);
@@ -1284,6 +1306,8 @@ int main(int argc, char *argv[])
 							else
 							{
 								manualaccumcount = 0;
+								manualaccum = manualaccum / manualaverages;
+								//printf("depth of manualaccum is %d \n", manualaccum.depth());
 								log(manualaccum, manualaccum);					// switch to logarithmic scale
 																				//convert to dB = 20 log10(value), from the natural log above
 								bscandispmanual = 20.0 * manualaccum / 2.303;
@@ -1307,7 +1331,7 @@ int main(int argc, char *argv[])
 								savematasimage(pathname, dirname, filename, bscandispmanual);
 								savematasimage(pathname, dirname, filenamec, cmagImanual);
 								
-								manualaccum = Mat::zeros(Size(oph, numfftpoints/2), CV_64F);
+								manualaccum = Mat::zeros(Size(oph, numdisplaypoints), CV_64F);
 
 
 								if (saveframes == 1)
@@ -1321,7 +1345,9 @@ int main(int argc, char *argv[])
 										else
 											bscanmanualsave0[ii].copyTo(bscantemp3);
 											
-										bscantemp3 += Scalar::all(0.000001);   	// to prevent log of 0                 
+										bscantemp3.convertTo(bscantemp3, CV_64F);
+										bscantemp3 += Scalar::all(0.000001);   	// to prevent log of 0       
+										          
 										log(bscantemp3, bscantemp3);					// switch to logarithmic scale
 																						//convert to dB = 20 log10(value), from the natural log above
 										bscantemp3 = 20.0 * bscantemp3 / 2.303;
@@ -1343,7 +1369,7 @@ int main(int argc, char *argv[])
 
 					} // end if skeypressed
 
-					bscantransposed = Mat::zeros(Size(numfftpoints / 2, oph), CV_64F);
+					bscantransposed = Mat::zeros(Size(numdisplaypoints, oph), CV_64F);
 					
 					// toggle the buffers
 					if (zeroisactive)
