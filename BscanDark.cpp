@@ -503,6 +503,9 @@ int main(int argc, char *argv[])
 	Mat data_ylin(oph, numfftpoints, CV_64F);
 	Mat data_yb(oph, opw, CV_64F);
 	Mat data_yp(oph, opw, CV_64F);
+	Mat data_yd(oph, opw, CV_64F);		// dark, reference and sample
+	Mat data_yr(oph, opw, CV_64F);
+	Mat data_ys(oph, opw, CV_64F);
 	Mat padded, paddedn;
 	Mat barthannwin(1, opw, CV_64F);		// the Mat constructor Mat(rows,columns,type);
 	Mat baccum, manualaccum;
@@ -936,9 +939,21 @@ int main(int argc, char *argv[])
 				if (bkeypressed == 1)
 
 				{
+					data_yb = (data_yr - data_yd) + (data_ys - data_yd);
+						
+						if (manualaveraging)
+								{
+									averagestoggle = 1;
+								}
+
+				}
+				
+				if (darkkeypressed == 1)
+
+				{
 					if (saveinterferograms)
 						{
-							// in this case, formerly active buffer is saved to disk when bkeypressed
+							// in this case, formerly active buffer is saved to disk when darkkeypressed
 							// since no further 
 							// and all accumulation is done
 							Mat activeMat, activeMatb, activeMat64;
@@ -955,20 +970,20 @@ int main(int argc, char *argv[])
 									activeMatb = interferogrambsave0[ii];
 								}
 									
-								sprintf(filename, "rawframeb%03d-%03d", indexi,ii);
+								sprintf(filename, "rawframedark%03d-%03d", indexi,ii);
 								savematasimage(pathname, dirname, filename, activeMat);
 								activeMatb.convertTo(activeMat64, CV_64F);
 								accumulate(activeMat64,baccum);
 							}
-							baccum.copyTo(data_yb);		// saves the "background" or source spectrum
+							baccum.copyTo(data_yd);		// saves the "background" or source spectrum
 							if (rowwisenormalize)
-								normalizerows(data_yb,data_yb,0.0001, 1);
+								normalizerows(data_yd,data_yd,0.0001, 1);
 							if (!donotnormalize)
-								normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
+								normalize(data_yd, data_yd, 0.0001, 1, NORM_MINMAX);
 							else
-								data_yb = data_yb / averagestoggle;
+								data_yd = data_yd / averagestoggle;
 								
-							bkeypressed = 0;
+							darkkeypressed = 0;
 							
 						}	
 						
@@ -983,26 +998,160 @@ int main(int argc, char *argv[])
 							}
 							else
 							{
-								baccum.copyTo(data_yb);		// saves the "background" or source spectrum
+								baccum.copyTo(data_yd);		// saves the dark frame
 								
 								if (rowwisenormalize)
-									normalizerows(data_yb, data_yb, 0.0001, 1);
+									normalizerows(data_yd, data_yd, 0.0001, 1);
 								if (!donotnormalize)
-									normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
+									normalize(data_yd, data_yd, 0.0001, 1, NORM_MINMAX);
 								else
-									data_yb = data_yb / averagestoggle;
-								bkeypressed = 0;
+									data_yd = data_yd / averagestoggle;
+								darkkeypressed = 0;
 								baccumcount = 0;
 								
 							}
 						} // end if not saveinterferograms
 						
-						if (manualaveraging)
-								{
-									averagestoggle = 1;
-								}
+						
 
 				}
+
+				if (rkeypressed == 1)
+
+				{
+					if (saveinterferograms)
+						{
+							// in this case, formerly active buffer is saved to disk when darkkeypressed
+							// since no further 
+							// and all accumulation is done
+							Mat activeMat, activeMatb, activeMat64;
+							for (uint ii = 0; ii<averagestoggle; ii++)
+							{
+								if (zeroisactive)
+								{
+									activeMat  = interferogramsave1[ii];
+									activeMatb = interferogrambsave1[ii];
+								}
+								else
+								{
+									activeMat  = interferogramsave0[ii];
+									activeMatb = interferogrambsave0[ii];
+								}
+									
+								sprintf(filename, "rawframeref%03d-%03d", indexi,ii);
+								savematasimage(pathname, dirname, filename, activeMat);
+								activeMatb.convertTo(activeMat64, CV_64F);
+								accumulate(activeMat64,baccum);
+							}
+							baccum.copyTo(data_yr);		// saves the "background" or source spectrum
+							if (rowwisenormalize)
+								normalizerows(data_yr,data_yr,0.0001, 1);
+							if (!donotnormalize)
+								normalize(data_yr, data_yr, 0.0001, 1, NORM_MINMAX);
+							else
+								data_yr = data_yr / averagestoggle;
+								
+							rkeypressed = 0;
+							
+						}	
+						
+						else 
+						{
+							if (baccumcount < averagestoggle)
+							{
+								accumulate(data_y, baccum);
+								// save the raw frame to buffer
+								
+								baccumcount++;
+							}
+							else
+							{
+								baccum.copyTo(data_yr);		// saves the dark frame
+								
+								if (rowwisenormalize)
+									normalizerows(data_yr, data_yr, 0.0001, 1);
+								if (!donotnormalize)
+									normalize(data_yr, data_yr, 0.0001, 1, NORM_MINMAX);
+								else
+									data_yr = data_yr / averagestoggle;
+								rkeypressed = 0;
+								baccumcount = 0;
+								
+							}
+						} // end if not saveinterferograms
+						
+						
+
+				}
+
+				if (tkeypressed == 1)
+
+				{
+					if (saveinterferograms)
+						{
+							// in this case, formerly active buffer is saved to disk when darkkeypressed
+							// since no further 
+							// and all accumulation is done
+							Mat activeMat, activeMatb, activeMat64;
+							for (uint ii = 0; ii<averagestoggle; ii++)
+							{
+								if (zeroisactive)
+								{
+									activeMat  = interferogramsave1[ii];
+									activeMatb = interferogrambsave1[ii];
+								}
+								else
+								{
+									activeMat  = interferogramsave0[ii];
+									activeMatb = interferogrambsave0[ii];
+								}
+									
+								sprintf(filename, "rawframesamp%03d-%03d", indexi,ii);
+								savematasimage(pathname, dirname, filename, activeMat);
+								activeMatb.convertTo(activeMat64, CV_64F);
+								accumulate(activeMat64,baccum);
+							}
+							baccum.copyTo(data_ys);		// saves the "background" or source spectrum
+							if (rowwisenormalize)
+								normalizerows(data_ys,data_ys,0.0001, 1);
+							if (!donotnormalize)
+								normalize(data_ys, data_ys, 0.0001, 1, NORM_MINMAX);
+							else
+								data_ys = data_ys / averagestoggle;
+								
+							tkeypressed = 0;
+							
+						}	
+						
+						else 
+						{
+							if (baccumcount < averagestoggle)
+							{
+								accumulate(data_y, baccum);
+								// save the raw frame to buffer
+								
+								baccumcount++;
+							}
+							else
+							{
+								baccum.copyTo(data_ys);		// saves the dark frame
+								
+								if (rowwisenormalize)
+									normalizerows(data_ys, data_ys, 0.0001, 1);
+								if (!donotnormalize)
+									normalize(data_ys, data_ys, 0.0001, 1, NORM_MINMAX);
+								else
+									data_ys = data_ys / averagestoggle;
+								tkeypressed = 0;
+								baccumcount = 0;
+								
+							}
+						} // end if not saveinterferograms
+						
+						
+
+				}
+
 
 				if (pkeypressed == 1)
 
@@ -1046,6 +1195,7 @@ int main(int argc, char *argv[])
 				// apodize 
 				// data_y = ( (data_y - data_yb) ./ data_yb ).*gausswin
 				data_y.convertTo(data_y, CV_64F);
+				data_y = data_y - data_yd;
 				if (rowwisenormalize)
 					normalizerows(data_y, data_y, 0, 1);
 				if (!donotnormalize)
@@ -1225,7 +1375,7 @@ int main(int argc, char *argv[])
 							normalize(data_ylin, bscantemp2, 0, 255, NORM_MINMAX);	// normalize the log plot for save
 							bscantemp2.convertTo(bscantemp2, CV_8UC1, 1.0);		// imwrite needs 0-255 CV_8U
 							savematasimage(pathname, dirname, filename, bscantemp2);
-							// in this case, formerly active buffer is saved to disk when bkeypressed
+							// in this case, formerly active buffer is saved to disk when darkkeypressed
 							// since no further 
 							// and all accumulation is done
 							Mat activeMat;
