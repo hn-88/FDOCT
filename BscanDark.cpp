@@ -115,6 +115,57 @@ inline void makeonlypositive(Mat& src, Mat& dst)
      
 }
 
+
+inline Mat lpfilter(Mat& sm)
+{
+	// similar to the filter in zeropadrowwise
+	Mat origimage;
+	Mat fouriertransform, inversefouriertransform;
+	sm.convertTo(origimage, CV_32F);
+	dft(origimage, fouriertransform, DFT_SCALE|DFT_COMPLEX_OUTPUT|DFT_ROWS);
+	
+	// implementing fftshift row-wise
+	// like https://docs.opencv.org/2.4/doc/tutorials/core/discrete_fourier_transform/discrete_fourier_transform.html
+	int cx = fouriertransform.cols/2;
+	
+	// here we assume fouriertransform.cols is even
+	
+	Mat LHS(fouriertransform, Rect(0, 0, cx, fouriertransform.rows));   // Create a ROI per half
+	Mat RHS(fouriertransform, Rect(cx, 0, cx, fouriertransform.rows)); //  Rect(topleftx, toplefty, w, h), 
+	// OpenCV typically assumes that the top and left boundary of the rectangle are inclusive, while the right and bottom boundaries are not. 
+	// https://docs.opencv.org/3.2.0/d2/d44/classcv_1_1Rect__.html
+	
+	Mat tmp;                           // swap LHS & RHS
+    LHS.copyTo(tmp);
+    RHS.copyTo(LHS);
+    tmp.copyTo(RHS);
+	
+	// blank out 80% of the points
+	// first 40% and last 40% for low pass
+	// since DC is now at the centre
+	int dcl = fouriertransform.cols/2 - floor(fouriertransform.cols/10);
+	int dcr = fouriertransform.cols/2 + floor(fouriertransform.cols/10);
+	Mat LHSblank(fouriertransform, Rect(0, 0, dcl, fouriertransform.rows));   // Create a ROI per half
+	Mat RHSblank(fouriertransform, Rect(dcr, 0, dcl, fouriertransform.rows)); //  Rect(topleftx, toplefty, w, h)
+	LHSblank=Scalar::all(0);
+	RHSblank=Scalar::all(0);
+	
+	// Now we do the ifftshift before ifft
+	cx = fouriertransform.cols/2;
+	Mat LHSzp(fouriertransform, Rect(0, 0, cx, fouriertransform.rows));   // Create a ROI per half
+	Mat RHSzp(fouriertransform, Rect(cx, 0, cx, fouriertransform.rows)); //  Rect(topleftx, toplefty, w, h)
+	
+	LHSzp.copyTo(tmp);
+    RHSzp.copyTo(LHSzp);
+    tmp.copyTo(RHSzp);
+	
+	dft(fouriertransform, inversefouriertransform, DFT_INVERSE|DFT_REAL_OUTPUT|DFT_ROWS);
+	inversefouriertransform.convertTo(inversefouriertransform, CV_64F);
+	
+	inversefouriertransform.copyTo(sm);
+	
+}	
+
 inline Mat zeropadrowwise(Mat sm, int sn, bool bandpassfilter)
 {
 	// increase fft points sn times 
@@ -167,7 +218,7 @@ inline Mat zeropadrowwise(Mat sm, int sn, bool bandpassfilter)
     if (bandpassfilter)
     {
 		// blank out 80% of the points
-		// first 40% and last 40%
+		// first 40% and last 40% for low pass
 		// since DC is now at the centre
 		int dcl = fouriertransform.cols/2 - floor(fouriertransform.cols/10);
 		int dcr = fouriertransform.cols/2 + floor(fouriertransform.cols/10);
@@ -176,7 +227,7 @@ inline Mat zeropadrowwise(Mat sm, int sn, bool bandpassfilter)
 		LHSblank=Scalar::all(0);
 		RHSblank=Scalar::all(0);
 		
-		// also blank out the DC
+		// also blank out the DC, so that it becomes a bandpass
 		int dcvals = 3;
 		dcl = fouriertransform.cols/2 - dcvals;
 		Mat DCblank(fouriertransform, Rect(dcl, 0, dcvals*2, fouriertransform.rows));
@@ -343,6 +394,7 @@ int main(int argc, char *argv[])
 	bool rowwisenormalize = 0;
 	bool donotnormalize = 1;
 	bool bandpassfilter = 0;
+	bool lowpassfilter = 0;
 
 	w = 640;
 	h = 480;
@@ -430,6 +482,8 @@ int main(int argc, char *argv[])
 		infile >> donotnormalize;
 		infile >> tempstring;
 		infile >> bandpassfilter;
+		infile >> tempstring;
+		infile >> lowpassfilter;
 		infile.close();
 		
 		lambdamin = atof(lambdaminstr);
@@ -976,6 +1030,7 @@ int main(int argc, char *argv[])
 								accumulate(activeMat64,baccum);
 							}
 							baccum.copyTo(data_yd);		// saves the "background" or source spectrum
+							baccum = Mat::zeros(Size(opw, oph), CV_64F);	// again zero out baccum
 							if (rowwisenormalize)
 								normalizerows(data_yd,data_yd,0.0001, 1);
 							if (!donotnormalize)
@@ -999,7 +1054,7 @@ int main(int argc, char *argv[])
 							else
 							{
 								baccum.copyTo(data_yd);		// saves the dark frame
-								
+								baccum = Mat::zeros(Size(opw, oph), CV_64F);	// again zero out baccum
 								if (rowwisenormalize)
 									normalizerows(data_yd, data_yd, 0.0001, 1);
 								if (!donotnormalize)
@@ -1011,6 +1066,12 @@ int main(int argc, char *argv[])
 								
 							}
 						} // end if not saveinterferograms
+						
+						if (lowpassfilter)
+						{
+							// low pass filter data_yd
+							lpfilter(data_yd);
+						}
 						
 						
 
@@ -1044,6 +1105,7 @@ int main(int argc, char *argv[])
 								accumulate(activeMat64,baccum);
 							}
 							baccum.copyTo(data_yr);		// saves the "background" or source spectrum
+							baccum = Mat::zeros(Size(opw, oph), CV_64F);	// again zero out baccum
 							if (rowwisenormalize)
 								normalizerows(data_yr,data_yr,0.0001, 1);
 							if (!donotnormalize)
@@ -1066,8 +1128,8 @@ int main(int argc, char *argv[])
 							}
 							else
 							{
-								baccum.copyTo(data_yr);		// saves the dark frame
-								
+								baccum.copyTo(data_yr);		// saves the ref frame
+								baccum = Mat::zeros(Size(opw, oph), CV_64F);	// again zero out baccum
 								if (rowwisenormalize)
 									normalizerows(data_yr, data_yr, 0.0001, 1);
 								if (!donotnormalize)
@@ -1080,7 +1142,11 @@ int main(int argc, char *argv[])
 							}
 						} // end if not saveinterferograms
 						
-						
+					if (lowpassfilter)
+						{
+							// low pass filter data_yr
+							lpfilter(data_yr);
+						}	
 
 				}
 
@@ -1111,7 +1177,8 @@ int main(int argc, char *argv[])
 								activeMatb.convertTo(activeMat64, CV_64F);
 								accumulate(activeMat64,baccum);
 							}
-							baccum.copyTo(data_ys);		// saves the "background" or source spectrum
+							baccum.copyTo(data_ys);		// saves the sample arm intensity
+							baccum = Mat::zeros(Size(opw, oph), CV_64F);	// again zero out baccum
 							if (rowwisenormalize)
 								normalizerows(data_ys,data_ys,0.0001, 1);
 							if (!donotnormalize)
@@ -1134,8 +1201,8 @@ int main(int argc, char *argv[])
 							}
 							else
 							{
-								baccum.copyTo(data_ys);		// saves the dark frame
-								
+								baccum.copyTo(data_ys);		// saves the sample arm frame
+								baccum = Mat::zeros(Size(opw, oph), CV_64F);	// again zero out baccum
 								if (rowwisenormalize)
 									normalizerows(data_ys, data_ys, 0.0001, 1);
 								if (!donotnormalize)
@@ -1148,7 +1215,11 @@ int main(int argc, char *argv[])
 							}
 						} // end if not saveinterferograms
 						
-						
+					if (lowpassfilter)
+						{
+							// low pass filter data_ys
+							lpfilter(data_ys);
+						}	
 
 				}
 
