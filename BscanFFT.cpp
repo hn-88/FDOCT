@@ -36,6 +36,7 @@
 * U key increases exposure time by 10 ms
 * D key decreases exposure time by 10 ms
 * A key toggles averaging
+* Q key toggles clamping upper bound of displayed Bscan to 50 dB
 * ] key increases thresholding in final Bscan
 * [ key decreases thresholding in final Bscan
 * 9 or ( key decreases the index of the reported ascan max value
@@ -330,6 +331,7 @@ int main(int argc, char *argv[])
 	bool manualaveraging = 0, saveinterferograms = 0;
 	unsigned int manualaverages = 1;
 	int movavgn = 0;
+	bool clampupper=0;
 
 	bool doneflag = 0, skeypressed = 0, bkeypressed = 0, pkeypressed = 0;
 	bool jthresholding = 0, jkeypressed = 0, ckeypressed = 0;
@@ -1162,8 +1164,15 @@ int main(int argc, char *argv[])
 					// apply bscanthresholding
 					// MatExpr max(const Mat& a, double s)
 					bscandisp = max(bscandisp, bscanthreshold);
+					if (clampupper)
+					{
+						// if this option is selected, set the left upper pixel to 50 dB
+						// before normalizing
+						bscandisp.at<double>(5,5)=50.0;
+					}
 					normalize(bscandisp, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 					bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
+					
 					if (jthresholding)
 					{
 						// bitwise AND the image with the mask
@@ -1685,6 +1694,14 @@ int main(int argc, char *argv[])
 					else
 						averagestoggle=1;
 					printf("Now averaging %d bscans.\n",averagestoggle);	
+					break;
+					
+				case 'q':
+				case 'Q':
+					if (clampupper==1)
+						clampupper = 0;
+					else
+						clampupper = 1;
 					break;
 
 				default:
