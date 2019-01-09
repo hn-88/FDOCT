@@ -116,7 +116,7 @@ inline void makeonlypositive(Mat& src, Mat& dst)
 }
 
 
-inline Mat lpfilter(Mat& sm)
+inline void lpfilter(Mat& sm)
 {
 	// similar to the filter in zeropadrowwise
 	Mat origimage;
