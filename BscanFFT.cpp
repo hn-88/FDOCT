@@ -40,6 +40,11 @@
 * [ key decreases thresholding in final Bscan
 * 9 or ( key decreases the index of the reported ascan max value
 * 0 or ) key increases the index of the reported ascan max value 
+* 
+* w decreases width of ROI for which avg val is reported, W increases width
+* h decreases the height (position), H increases
+* location of ROI is to the right of the index of reported ascan
+* 
 * ESC, x or X key quits
 *
 *
@@ -87,6 +92,23 @@ inline void normalizerows(Mat& src, Mat& dst, double lowerlim, double upperlim)
 		normalize(src.row(ii), dst.row(ii), lowerlim, upperlim, NORM_MINMAX);
 	}
 	 
+}
+
+inline void printAvgROI(Mat bscandb, uint ascanat, uint vertposROI, uint widthROI)
+{
+	Mat AvgROI;
+	Scalar meanVal;
+	uint heightROI = 3;
+	if(ascanat+widthROI<bscandb.cols)
+	{
+		bscandb(Rect(ascanat, vertposROI, widthROI, heightROI)).copyTo(AvgROI);
+		//imshow("ROI",AvgROI);
+		AvgROI.reshape(0, 1);		// make it into a 1D array
+		meanVal = mean(AvgROI);
+		printf("Mean of ROI at %d = %f dB\n", ascanat, meanVal(0));
+	}
+	else
+		printf("ascanat+widthROI>oph!\n");
 }
 
 inline void printMinMaxAscan(Mat bscandb, uint ascanat, int numdisplaypoints)
@@ -469,10 +491,7 @@ int main(int argc, char *argv[])
 	float lambda0 = (lambdamin + lambdamax) / 2;
 	float lambdabw = lambdamax - lambdamin;
 	
-
-	Mat ROI;
-	Mat plot_result;
-	Mat plot_result2;
+	unsigned int vertposROI=10, widthROI=10;
 
 	Mat data_y(oph, opw, CV_64F);		// the Mat constructor Mat(rows,columns,type)
 	Mat data_ylin(oph, numfftpoints, CV_64F);
@@ -1158,6 +1177,7 @@ int main(int argc, char *argv[])
 					//putText(img,"Text",location, fontface, fonstscale,colorbgr,thickness,linetype, bool bottomLeftOrigin=false);
 					
 					imshow("Bscan", cmagI);
+					printAvgROI(bscandb, ascanat, vertposROI, widthROI);
 					
 					if (jkeypressed == 1)
 					{
@@ -1282,7 +1302,7 @@ int main(int argc, char *argv[])
 							{
 								manualaccumcount = 0;
 								manualaccum = manualaccum / manualaverages;
-								printf("depth of manualaccum is %d \n", manualaccum.depth());
+								//printf("depth of manualaccum is %d \n", manualaccum.depth());
 								log(manualaccum, manualaccum);					// switch to logarithmic scale
 																				//convert to dB = 20 log10(value), from the natural log above
 								bscandispmanual = 20.0 * manualaccum / 2.303;
@@ -1624,6 +1644,38 @@ int main(int argc, char *argv[])
 					
 					printf("ascanat = %d \n",ascanat);
 					printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
+					break;
+					
+				case 'W':
+					if ((ascanat + widthROI) < (oph-1))
+						widthROI += 1;
+					
+					printf("ROI width = %d \n",widthROI);
+					printAvgROI(bscandb, ascanat, vertposROI, widthROI);
+					break;
+					
+				case 'w':
+					if (widthROI > 2)
+						widthROI -= 1;
+					
+					printf("ROI width = %d \n",widthROI);
+					printAvgROI(bscandb, ascanat, vertposROI, widthROI);
+					break;
+					
+				case 'h':
+					if (vertposROI < (numdisplaypoints-1))
+						vertposROI += 1;
+					
+					printf("ROI vertical position = %d \n",vertposROI);
+					printAvgROI(bscandb, ascanat, vertposROI, widthROI);
+					break;
+					
+				case 'H':
+					if (vertposROI > 2)
+						vertposROI -= 1;
+					
+					printf("ROI vertical position = %d \n",vertposROI);
+					printAvgROI(bscandb, ascanat, vertposROI, widthROI);
 					break;
 
 				case 'a':
