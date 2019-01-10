@@ -3,7 +3,7 @@
 #include "windows.h"
 // anything before a precompiled header is ignored, 
 // so no endif here! add #endif to compile on __unix__ !
-#endif
+//#endif
 #ifdef _WIN64
 #include <qhyccd.h>
 #endif
@@ -95,7 +95,7 @@ inline void normalizerows(Mat& src, Mat& dst, double lowerlim, double upperlim)
 	 
 }
 
-inline void printAvgROI(Mat bscandb, uint ascanat, uint vertposROI, uint widthROI)
+inline void printAvgROI(Mat bscandb, uint ascanat, uint vertposROI, uint widthROI, Mat& ROIplot, uint& ROIploti)
 {
 	Mat AvgROI;
 	Scalar meanVal;
@@ -107,9 +107,29 @@ inline void printAvgROI(Mat bscandb, uint ascanat, uint vertposROI, uint widthRO
 		AvgROI.reshape(0, 1);		// make it into a 1D array
 		meanVal = mean(AvgROI);
 		printf("Mean of ROI at %d = %f dB\n", ascanat, meanVal(0));
+		// in ROIplot, we take the range to be 0 to 50 dB
+		// this is mapped to 0 to 300 vertical pixels
+		uint vertindex = uint(abs(6 * floor(meanVal(0))));
+
+		if (vertindex < 300)
+			vertindex = 300 - vertindex;	// since Mat is shown 0th row on top with imshow
+
+		ROIplot.col(ROIploti) = Scalar::all(0);
+		for (int smalloopi = -2; smalloopi < 4; smalloopi++)
+		{
+			if ((vertindex + smalloopi) > 0)
+				if ((vertindex + smalloopi) < 300)
+					ROIplot.at<double>(vertindex + smalloopi, ROIploti) = 1;
+		}
+
+		imshow("ROI intensity", ROIplot);
+		if (ROIploti < 599)
+			ROIploti++;
+		else
+			ROIploti = 0;
 	}
 	else
-		printf("ascanat+widthROI>oph!\n");
+		printf("ascanat+widthROI > width of image!\n");
 }
 
 inline void printMinMaxAscan(Mat bscandb, uint ascanat, int numdisplaypoints)
@@ -443,6 +463,9 @@ int main(int argc, char *argv[])
 
 	namedWindow("Bscan", 0); // 0 = WINDOW_NORMAL
 	moveWindow("Bscan", 800, 0);
+
+	namedWindow("ROI intensity", 0); // 0 = WINDOW_NORMAL
+	moveWindow("ROI intensity", 800, 500);
 	
 	// debug
 	/*
@@ -533,6 +556,8 @@ int main(int argc, char *argv[])
 	Mat tempmat;
 	Mat bscandispj;
 	Mat mraw;
+	Mat ROIplot = Mat::zeros(cv::Size(600, 300), CV_64F);
+	uint ROIploti = 0;
 
 	//Mat bscanl, bscantempl, bscantransposedl;
 	Mat magI, cmagI, cmagImanual;
@@ -1186,7 +1211,7 @@ int main(int argc, char *argv[])
 					//putText(img,"Text",location, fontface, fonstscale,colorbgr,thickness,linetype, bool bottomLeftOrigin=false);
 					
 					imshow("Bscan", cmagI);
-					printAvgROI(bscandb, ascanat, vertposROI, widthROI);
+					printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
 					
 					if (jkeypressed == 1)
 					{
@@ -1660,7 +1685,7 @@ int main(int argc, char *argv[])
 						widthROI += 1;
 					
 					printf("ROI width = %d \n",widthROI);
-					printAvgROI(bscandb, ascanat, vertposROI, widthROI);
+					printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
 					break;
 					
 				case 'w':
@@ -1668,7 +1693,7 @@ int main(int argc, char *argv[])
 						widthROI -= 1;
 					
 					printf("ROI width = %d \n",widthROI);
-					printAvgROI(bscandb, ascanat, vertposROI, widthROI);
+					printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
 					break;
 					
 				case 'h':
@@ -1676,7 +1701,7 @@ int main(int argc, char *argv[])
 						vertposROI += 1;
 					
 					printf("ROI vertical position = %d \n",vertposROI);
-					printAvgROI(bscandb, ascanat, vertposROI, widthROI);
+					printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
 					break;
 					
 				case 'H':
@@ -1684,7 +1709,7 @@ int main(int argc, char *argv[])
 						vertposROI -= 1;
 					
 					printf("ROI vertical position = %d \n",vertposROI);
-					printAvgROI(bscandb, ascanat, vertposROI, widthROI);
+					printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
 					break;
 
 				case 'a':
