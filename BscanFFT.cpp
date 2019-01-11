@@ -3,7 +3,7 @@
 #include "windows.h"
 // anything before a precompiled header is ignored, 
 // so no endif here! add #endif to compile on __unix__ !
-//#endif
+#endif
 #ifdef _WIN64
 #include <qhyccd.h>
 #endif
@@ -45,6 +45,7 @@
 * w decreases width of ROI for which avg val is reported, W increases width
 * h decreases the height (position), H increases
 * location of ROI is to the right of the index of reported ascan
+* e toggles rEporting/plotting of ROI average intensity
 * 
 * ESC, x or X key quits
 *
@@ -352,6 +353,7 @@ int main(int argc, char *argv[])
 	unsigned int manualaverages = 1;
 	int movavgn = 0;
 	bool clampupper=0;
+	bool ROIreport=0;
 
 	bool doneflag = 0, skeypressed = 0, bkeypressed = 0, pkeypressed = 0;
 	bool jthresholding = 0, jkeypressed = 0, ckeypressed = 0;
@@ -1057,7 +1059,8 @@ int main(int argc, char *argv[])
 					opmvector.reshape(0, 1);	//make it into a row array
 					minMaxLoc(opmvector, &minVal, &maxVal);
 					printf("Max intensity = %d\n", int(floor(maxVal)));
-					printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
+					if (ROIreport)
+						printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
 					fps = 0;
 					t_start = time(NULL);
 				}
@@ -1211,7 +1214,8 @@ int main(int argc, char *argv[])
 					//putText(img,"Text",location, fontface, fonstscale,colorbgr,thickness,linetype, bool bottomLeftOrigin=false);
 					
 					imshow("Bscan", cmagI);
-					printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
+					if (ROIreport)
+						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
 					
 					if (jkeypressed == 1)
 					{
@@ -1654,7 +1658,8 @@ int main(int argc, char *argv[])
 						ascanat -= 10;
 					
 					printf("ascanat = %d \n",ascanat);
-					printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
+					if (ROIreport)
+						printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
 					break;
 					
 				case '9':
@@ -1662,7 +1667,8 @@ int main(int argc, char *argv[])
 						ascanat -= 1;
 					
 					printf("ascanat = %d \n",ascanat);
-					printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
+					if (ROIreport)
+						printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
 					break;
 					
 				case ')':
@@ -1670,14 +1676,16 @@ int main(int argc, char *argv[])
 						ascanat += 10;
 					
 					printf("ascanat = %d \n",ascanat);
-					printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
+					if (ROIreport)
+						printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
 					break;
 				case '0':
 					if (ascanat < (oph-1))
 						ascanat += 1;
 					
 					printf("ascanat = %d \n",ascanat);
-					printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
+					if (ROIreport)
+						printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
 					break;
 					
 				case 'W':
@@ -1685,7 +1693,8 @@ int main(int argc, char *argv[])
 						widthROI += 1;
 					
 					printf("ROI width = %d \n",widthROI);
-					printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
+					if (ROIreport)
+						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
 					break;
 					
 				case 'w':
@@ -1693,7 +1702,8 @@ int main(int argc, char *argv[])
 						widthROI -= 1;
 					
 					printf("ROI width = %d \n",widthROI);
-					printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
+					if (ROIreport)
+						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
 					break;
 					
 				case 'h':
@@ -1701,7 +1711,8 @@ int main(int argc, char *argv[])
 						vertposROI += 1;
 					
 					printf("ROI vertical position = %d \n",vertposROI);
-					printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
+					if (ROIreport)
+						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
 					break;
 					
 				case 'H':
@@ -1709,7 +1720,8 @@ int main(int argc, char *argv[])
 						vertposROI -= 1;
 					
 					printf("ROI vertical position = %d \n",vertposROI);
-					printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
+					if (ROIreport)
+						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
 					break;
 
 				case 'a':
@@ -1719,6 +1731,20 @@ int main(int argc, char *argv[])
 					else
 						averagestoggle=1;
 					printf("Now averaging %d bscans.\n",averagestoggle);	
+					break;
+					
+				case 'e':
+				case 'E':
+					if (ROIreport==1)
+					{
+						ROIreport = 0;
+						printf("Supressing rEporting/plotting ROI averages.\n");
+					}
+					else
+					{
+						ROIreport=1;
+						printf("Now rEporting/plotting ROI averages.\n");
+					}	
 					break;
 					
 				case 'q':
