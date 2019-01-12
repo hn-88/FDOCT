@@ -335,11 +335,11 @@ int main(int argc, char *argv[])
 	char id[32];
 	//char camtype[16];
 	int found = 0;
-	unsigned int w, h, bpp = 8, channels, cambitdepth = 16, numofframes = 100;
-	unsigned int numofm1slices = 10, numofm2slices = 10, firstaccum, secondaccum;
+	unsigned int w, h, bpp = 8, channels, cambitdepth = 16;
 	unsigned int offsetx = 0, offsety = 0;
 	unsigned int indexi, manualindexi, averages = 1, opw, oph;
-	uint  indextemp, indextempl;
+	uint  indextemp;
+	//uint indextempl;
 	uint ascanat=20;
 	uint averagestoggle = 1;
 
@@ -370,7 +370,7 @@ int main(int argc, char *argv[])
 	w = 640;
 	h = 480;
 
-	int  fps, key, bscanat;
+	int  fps, key;
 	int t_start, t_end;
 
 	std::ifstream infile("BscanFFT.ini");
@@ -564,7 +564,7 @@ int main(int argc, char *argv[])
 	//Mat bscanl, bscantempl, bscantransposedl;
 	Mat magI, cmagI, cmagImanual;
 	//Mat magIl, cmagIl;
-	double minbscan, maxbscan;
+	//double minbscan, maxbscan;
 	//double minbscanl, maxbscanl;
 	Scalar meanval;
 	Mat lambdas, k, klinear;
@@ -573,7 +573,7 @@ int main(int argc, char *argv[])
 	double kmin, kmax;
 	double pi = 3.141592653589793;
 
-	double minVal, maxVal, pixVal;
+	double minVal, maxVal;
 	Mat ascan;
 	//minMaxLoc( m, &minVal, &maxVal, &minLoc, &maxLoc );
 
