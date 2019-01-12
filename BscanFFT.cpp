@@ -96,18 +96,25 @@ inline void normalizerows(Mat& src, Mat& dst, double lowerlim, double upperlim)
 	 
 }
 
-inline void printAvgROI(Mat bscandb, uint ascanat, uint vertposROI, uint widthROI, Mat& ROIplot, uint& ROIploti)
+inline void printAvgROI(Mat bscandb, uint ascanat, uint vertposROI, uint widthROI, Mat& ROIplot, uint& ROIploti, Mat& statusimg)
 {
 	Mat AvgROI;
 	Scalar meanVal;
 	uint heightROI = 3;
+	char textbuffer[80];
+	Mat lastrowofstatusimg=statusimg(Rect(0, 250, 600, 50)); // x,y,width,height
+	
 	if(ascanat+widthROI<bscandb.cols)
 	{
 		bscandb(Rect(ascanat, vertposROI, widthROI, heightROI)).copyTo(AvgROI);
 		//imshow("ROI",AvgROI);
 		AvgROI.reshape(0, 1);		// make it into a 1D array
 		meanVal = mean(AvgROI);
-		printf("Mean of ROI at %d = %f dB\n", ascanat, meanVal(0));
+		//printf("Mean of ROI at %d = %f dB\n", ascanat, meanVal(0));
+		sprintf(textbuffer, "Mean of ROI at %d = %f dB", ascanat, meanVal(0));
+		lastrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+		putText(statusimg, textbuffer, Point(0, 280), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+		imshow("Status", statusimg);
 		// in ROIplot, we take the range to be 0 to 50 dB
 		// this is mapped to 0 to 300 vertical pixels
 		uint vertindex = uint(abs(6 * floor(meanVal(0))));
@@ -130,13 +137,19 @@ inline void printAvgROI(Mat bscandb, uint ascanat, uint vertposROI, uint widthRO
 			ROIploti = 0;
 	}
 	else
-		printf("ascanat+widthROI > width of image!\n");
+		sprintf(textbuffer,"ascanat+widthROI > width of image!");
+		lastrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+		putText(statusimg, textbuffer, Point(0, 280), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+		imshow("Status", statusimg);
 }
 
-inline void printMinMaxAscan(Mat bscandb, uint ascanat, int numdisplaypoints)
+inline void printMinMaxAscan(Mat bscandb, uint ascanat, int numdisplaypoints, Mat& statusimg)
 {
 	Mat ascan, ascandisp;
 	double minVal, maxVal;
+	char textbuffer[80];
+	Mat thirdrowofstatusimg=statusimg(Rect(0, 150, 600, 50));
+	Mat fourthrowofstatusimg=statusimg(Rect(0, 200, 600, 50));
 	bscandb.col(ascanat).copyTo(ascan);
 	ascan.row(4).copyTo(ascan.row(1));	// masking out the DC in the display
 	ascan.row(4).copyTo(ascan.row(0));
@@ -147,8 +160,14 @@ inline void printMinMaxAscan(Mat bscandb, uint ascanat, int numdisplaypoints)
 	//normalize(ascan, ascandebug, 0, 1, NORM_MINMAX);
 	//imshow("debug", ascandebug);
 	minMaxLoc(ascandisp, &minVal, &maxVal);
-	printf("Max of Ascan at %d = %f dB\n", ascanat, maxVal);
-	printf("Min of Ascan at %d = %f dB\n", ascanat, minVal);
+	sprintf(textbuffer,"Max of Ascan%d = %f dB", ascanat, maxVal);
+	thirdrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+	putText(statusimg, textbuffer, Point(0, 180), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+	sprintf(textbuffer,"Min of Ascan%d = %f dB", ascanat, minVal);
+	fourthrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+	putText(statusimg, textbuffer, Point(0, 230), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+	imshow("Status", statusimg);
+	
 }
 					
 inline void makeonlypositive(Mat& src, Mat& dst)
@@ -461,13 +480,19 @@ int main(int argc, char *argv[])
 	else std::cout << "Unable to open ini file, using defaults.";
 
 	namedWindow("show", 0); // 0 = WINDOW_NORMAL
-	moveWindow("show", 20, 0);
+	moveWindow("show", 0, 0);
 
 	namedWindow("Bscan", 0); // 0 = WINDOW_NORMAL
 	moveWindow("Bscan", 800, 0);
-
-	namedWindow("ROI intensity", 0); // 0 = WINDOW_NORMAL
-	moveWindow("ROI intensity", 800, 500);
+	
+	namedWindow("Status", 0); // 0 = WINDOW_NORMAL
+	moveWindow("Status", 0, 500);
+	
+	if(ROIreport)
+	{
+		namedWindow("ROI intensity", 0); // 0 = WINDOW_NORMAL
+		moveWindow("ROI intensity", 800, 500);
+	}
 	
 	// debug
 	/*
@@ -560,6 +585,10 @@ int main(int argc, char *argv[])
 	Mat mraw;
 	Mat ROIplot = Mat::zeros(cv::Size(600, 300), CV_64F);
 	uint ROIploti = 0;
+	Mat statusimg = Mat::zeros(cv::Size(600, 300), CV_64F);
+	Mat firstrowofstatusimg=statusimg(Rect(0, 0, 600, 50)); // x,y,width,height
+	Mat secrowofstatusimg=statusimg(Rect(0, 50, 600, 50));
+	char textbuffer[80];
 
 	//Mat bscanl, bscantempl, bscantransposedl;
 	Mat magI, cmagI, cmagImanual;
@@ -875,11 +904,17 @@ int main(int argc, char *argv[])
 		ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 		if (ret == QHYCCD_SUCCESS)
 		{
-			printf("Exp time = %d \n", camtime);
+			sprintf(textbuffer,"Exp time = %d ", camtime);
+			secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+			putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+			imshow("Status", statusimg);
 		}
 		else
 		{
-			printf("CONTROL_EXPOSURE fail\n");
+			sprintf(textbuffer,"CONTROL_EXPOSURE failed");
+			secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+			putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+			imshow("Status", statusimg);
 			goto failure;
 		}
 		t_start = time(NULL);
@@ -1054,13 +1089,16 @@ int main(int argc, char *argv[])
 				t_end = time(NULL);
 				if (t_end - t_start >= 5)
 				{
-					printf("fps = %d\n", fps / 5);
+					//printf("fps = %d\n", fps / 5);
 					opm.copyTo(opmvector);
 					opmvector.reshape(0, 1);	//make it into a row array
 					minMaxLoc(opmvector, &minVal, &maxVal);
-					printf("Max intensity = %d\n", int(floor(maxVal)));
+					sprintf(textbuffer,"fps = %d  Max intensity = %d", fps / 5, int(floor(maxVal)));
+					firstrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(0, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);
 					if (ROIreport)
-						printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
+						printMinMaxAscan(bscandb, ascanat, numdisplaypoints, statusimg);
 					fps = 0;
 					t_start = time(NULL);
 				}
@@ -1215,7 +1253,7 @@ int main(int argc, char *argv[])
 					
 					imshow("Bscan", cmagI);
 					if (ROIreport)
-						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
+						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti, statusimg);
 					
 					if (jkeypressed == 1)
 					{
@@ -1523,11 +1561,18 @@ int main(int argc, char *argv[])
 					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 					if (ret == QHYCCD_SUCCESS)
 					{
-						printf("Exp time = %d \n", camtime);
+						sprintf(textbuffer,"Exp time = %d ", camtime);
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
+						
 					}
 					else
 					{
-						printf("CONTROL_EXPOSURE fail\n");
+						sprintf(textbuffer,"CONTROL_EXPOSURE failed");
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
 						goto failure;
 					}
 					break;
@@ -1541,11 +1586,17 @@ int main(int argc, char *argv[])
 					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 					if (ret == QHYCCD_SUCCESS)
 					{
-						printf("Exp time = %d \n", camtime);
+						sprintf(textbuffer,"Exp time = %d ", camtime);
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
 					}
 					else
 					{
-						printf("CONTROL_EXPOSURE fail\n");
+						sprintf(textbuffer,"CONTROL_EXPOSURE failed");
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
 						goto failure;
 					}
 					break;
@@ -1556,11 +1607,17 @@ int main(int argc, char *argv[])
 					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 					if (ret == QHYCCD_SUCCESS)
 					{
-						printf("Exp time = %d \n", camtime);
+						sprintf(textbuffer,"Exp time = %d ", camtime);
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
 					}
 					else
 					{
-						printf("CONTROL_EXPOSURE fail\n");
+						sprintf(textbuffer,"CONTROL_EXPOSURE failed");
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
 						goto failure;
 					}
 					break;
@@ -1572,11 +1629,17 @@ int main(int argc, char *argv[])
 					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 					if (ret == QHYCCD_SUCCESS)
 					{
-						printf("Exp time = %d \n", camtime);
+						sprintf(textbuffer,"Exp time = %d ", camtime);
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
 					}
 					else
 					{
-						printf("CONTROL_EXPOSURE fail\n");
+						sprintf(textbuffer,"CONTROL_EXPOSURE failed");
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
 						goto failure;
 					}
 					break;
@@ -1586,11 +1649,17 @@ int main(int argc, char *argv[])
 					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 					if (ret == QHYCCD_SUCCESS)
 					{
-						printf("Exp time = %d \n", camtime);
+						sprintf(textbuffer,"Exp time = %d ", camtime);
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
 					}
 					else
 					{
-						printf("CONTROL_EXPOSURE fail\n");
+						sprintf(textbuffer,"CONTROL_EXPOSURE failed");
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
 						goto failure;
 					}
 					break;
@@ -1602,11 +1671,17 @@ int main(int argc, char *argv[])
 					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 					if (ret == QHYCCD_SUCCESS)
 					{
-						printf("Exp time = %d \n", camtime);
+						sprintf(textbuffer,"Exp time = %d ", camtime);
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
 					}
 					else
 					{
-						printf("CONTROL_EXPOSURE fail\n");
+						sprintf(textbuffer,"CONTROL_EXPOSURE failed");
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
 						goto failure;
 					}
 					break;
@@ -1644,84 +1719,114 @@ int main(int argc, char *argv[])
 				case ']':
 
 					bscanthreshold += 1.0;
-					printf("bscanthreshold = %f \n",bscanthreshold);
+					sprintf(textbuffer,"bscanthreshold = %f",bscanthreshold);
+					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);
 					break;
 					
 				case '[':
 
 					bscanthreshold -= 1.0;
-					printf("bscanthreshold = %f \n",bscanthreshold);
+					sprintf(textbuffer,"bscanthreshold = %f",bscanthreshold);
+					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);
 					break;
 					
 				case '(':
 					if (ascanat > 10)
 						ascanat -= 10;
 					
-					printf("ascanat = %d \n",ascanat);
+					sprintf(textbuffer,"ascanat = %d",ascanat);
+					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);
 					if (ROIreport)
-						printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
+						printMinMaxAscan(bscandb, ascanat, numdisplaypoints, statusimg);
 					break;
 					
 				case '9':
 					if (ascanat > 0)
 						ascanat -= 1;
 					
-					printf("ascanat = %d \n",ascanat);
+					sprintf(textbuffer,"ascanat = %d",ascanat);
+					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);
 					if (ROIreport)
-						printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
+						printMinMaxAscan(bscandb, ascanat, numdisplaypoints, statusimg);
 					break;
 					
 				case ')':
 					if (ascanat < (oph-11))
 						ascanat += 10;
 					
-					printf("ascanat = %d \n",ascanat);
+					sprintf(textbuffer,"ascanat = %d",ascanat);
+					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);
 					if (ROIreport)
-						printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
+						printMinMaxAscan(bscandb, ascanat, numdisplaypoints, statusimg);
 					break;
 				case '0':
 					if (ascanat < (oph-1))
 						ascanat += 1;
 					
-					printf("ascanat = %d \n",ascanat);
+					sprintf(textbuffer,"ascanat = %d",ascanat);
+					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);
 					if (ROIreport)
-						printMinMaxAscan(bscandb, ascanat, numdisplaypoints);
+						printMinMaxAscan(bscandb, ascanat, numdisplaypoints, statusimg);
 					break;
 					
 				case 'W':
 					if ((ascanat + widthROI) < (oph-1))
 						widthROI += 1;
 					
-					printf("ROI width = %d \n",widthROI);
+					sprintf(textbuffer,"ROI width = %d",widthROI);
+					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);
 					if (ROIreport)
-						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
+						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti, statusimg);
 					break;
 					
 				case 'w':
 					if (widthROI > 2)
 						widthROI -= 1;
 					
-					printf("ROI width = %d \n",widthROI);
+					sprintf(textbuffer, "ROI width = %d",widthROI);
+					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);
 					if (ROIreport)
-						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
+						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti, statusimg);
 					break;
 					
 				case 'h':
 					if (vertposROI < (numdisplaypoints-1))
 						vertposROI += 1;
 					
-					printf("ROI vertical position = %d \n",vertposROI);
+					sprintf(textbuffer, "ROI vertical position = %d ",vertposROI);
+					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);
 					if (ROIreport)
-						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
+						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti, statusimg);
 					break;
 					
 				case 'H':
 					if (vertposROI > 2)
 						vertposROI -= 1;
 					
-					printf("ROI vertical position = %d \n",vertposROI);
+					sprintf(textbuffer, "ROI vertical position = %d",vertposROI);
+					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);
 					if (ROIreport)
-						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti);
+						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti, statusimg);
 					break;
 
 				case 'a':
@@ -1730,7 +1835,10 @@ int main(int argc, char *argv[])
 						averagestoggle = averages;
 					else
 						averagestoggle=1;
-					printf("Now averaging %d bscans.\n",averagestoggle);	
+					sprintf(textbuffer, "Now averaging %d bscans.",averagestoggle);
+					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);	
 					break;
 					
 				case 'e':
@@ -1738,12 +1846,20 @@ int main(int argc, char *argv[])
 					if (ROIreport==1)
 					{
 						ROIreport = 0;
-						printf("Supressing rEporting/plotting ROI averages.\n");
+						sprintf(textbuffer,"Supressing rEporting/plotting ROI averages.");
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
 					}
 					else
 					{
 						ROIreport=1;
-						printf("Now rEporting/plotting ROI averages.\n");
+						sprintf(textbuffer,"Now rEporting/plotting ROI averages.");
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
+						//printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti, statusimg);
+						//moveWindow("ROI intensity", 800, 400);
 					}	
 					break;
 					
