@@ -588,6 +588,7 @@ int main(int argc, char *argv[])
 	Mat statusimg = Mat::zeros(cv::Size(600, 300), CV_64F);
 	Mat firstrowofstatusimg=statusimg(Rect(0, 0, 600, 50)); // x,y,width,height
 	Mat secrowofstatusimg=statusimg(Rect(0, 50, 600, 50));
+	Mat secrowofstatusimgRHS=statusimg(Rect(300, 50, 300, 50));
 	char textbuffer[80];
 
 	//Mat bscanl, bscantempl, bscantransposedl;
@@ -1055,6 +1056,11 @@ int main(int argc, char *argv[])
 							}
 						} // end if not saveinterferograms
 						
+						sprintf(textbuffer,"S(k) saved.");
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
+						
 						if (manualaveraging)
 								{
 									averagestoggle = 1;
@@ -1195,6 +1201,10 @@ int main(int argc, char *argv[])
 				
 				if (indextemp >= averagestoggle) 
 				{
+					sprintf(textbuffer,"%03d images acq.", averagestoggle);
+					secrowofstatusimgRHS = Mat::zeros(cv::Size(300, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(300, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);
 					indextemp = 0;
 					// we will also toggle the buffers, at the end of this 'else' code block
 					
@@ -1280,6 +1290,11 @@ int main(int argc, char *argv[])
 						savematasimage(pathname, dirname, filename, bscandisp);
 						sprintf(filenamec, "bscanc%03d", indexi);
 						savematasimage(pathname, dirname, filenamec, cmagI);
+						
+						sprintf(textbuffer,"bscan%03d saved.", indexi);
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
 						
 						if (jthresholding)
 						{
