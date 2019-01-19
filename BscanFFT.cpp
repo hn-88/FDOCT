@@ -22,7 +22,7 @@
 * Captures (background) spectrum on receipt of b key
 * Captures pi shifted or J0 frame on receipt of p key
 * Saves frames on receipt of s key
-* Saves J0 null frame for thresholding on receipt of j key
+* Saves J0 null frame for subtraction on receipt of j key
 * Clears the J0 thresholding mask on c key
 *
 * Do manual frame by frame averaging with ini file option
@@ -375,7 +375,7 @@ int main(int argc, char *argv[])
 	bool ROIreport=0;
 
 	bool doneflag = 0, skeypressed = 0, bkeypressed = 0, pkeypressed = 0;
-	bool jthresholding = 0, jkeypressed = 0, ckeypressed = 0;
+	bool jlockin = 0, jkeypressed = 0, ckeypressed = 0;
 	Mat jmask, jmaskt;
 	double lambdamin, lambdamax;
 	lambdamin = 816e-9;
@@ -574,6 +574,7 @@ int main(int argc, char *argv[])
 	Mat interferogramsave1[100];
 	Mat interferogrambsave0[100];
 	Mat interferogrambsave1[100];
+	Mat bscansublog, positivediff;
 	
 	bool zeroisactive = 1;
 
@@ -1213,17 +1214,13 @@ int main(int argc, char *argv[])
 					bscan += Scalar::all(0.00001);   	// to prevent log of 0  
 					// 20.0 * log(0.1) / 2.303 = -20 dB, which is sufficient 
 					
-					if (jthresholding)
+					if (jlockin)
 					{
-						// create the mask 
-						Mat jthreshdiff = bscan - jscansave;
-						Mat positivediff;
-						jthreshdiff.copyTo(positivediff);		// just to initialize the Mat
-						makeonlypositive(jthreshdiff, positivediff);
-						positivediff.convertTo(positivediff, CV_8UC1, 1.0);
-						threshold(positivediff, jmask, 5, 255, THRESH_BINARY);
-						jmask.convertTo(jmask, CV_8UC1, 255.0);
-						jmaskt = jmask.rowRange(0, numdisplaypoints);
+						Mat jdiff = bscan - jscansave;	// these are in linear scale
+						jdiff.copyTo(positivediff);		// just to initialize the Mat
+						makeonlypositive(jdiff, positivediff);
+						positivediff+=0.001;			// to avoid log(0)
+						
 					}
 
 					
@@ -1249,14 +1246,33 @@ int main(int argc, char *argv[])
 					normalize(bscandisp, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 					bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
 					
-					if (jthresholding)
+					if (jlockin)
 					{
-						// bitwise AND the image with the mask
-						// debug here
-						bitwise_and(bscandisp, jmaskt, bscandispj);
-						applyColorMap(bscandispj, cmagI, COLORMAP_JET);
+						// code to display and save subtracted frame
+						log(positivediff, bscansublog);
+						bscandispmanual = 20.0 * bscansublog / 2.303;
+								
+						// apply bscanthresholding
+						bscandispmanual = max(bscandispmanual, bscanthreshold);
+
+						normalize(bscandispmanual, bscandispmanual, 0, 1, NORM_MINMAX);	// normalize the log plot for display
+						bscandispmanual.convertTo(bscandispmanual, CV_8UC1, 255.0);
+						applyColorMap(bscandispmanual, cmagImanual, COLORMAP_JET);
+						
+						imshow("Bscan subtracted", cmagImanual);
+						
+
+						// and save - similar code as in skeypressed
+						//////////////////////////////////////////
+						manualindexi++;
+						sprintf(filename, "bscansub%03d", manualindexi);
+						sprintf(filenamec, "bscansubc%03d", manualindexi);
+						savematasdata(outfile, filename, manualaccum);
+						savematasimage(pathname, dirname, filename, bscandispmanual);
+						savematasimage(pathname, dirname, filenamec, cmagImanual);
+						
 					}
-					else
+					 
 					applyColorMap(bscandisp, cmagI, COLORMAP_JET);
 					putText(cmagI,"^",Point(ascanat-10, numdisplaypoints), FONT_HERSHEY_COMPLEX, 1,Scalar(255,255,255),3,8);
 					//putText(img,"Text",location, fontface, fonstscale,colorbgr,thickness,linetype, bool bottomLeftOrigin=false);
@@ -1268,14 +1284,14 @@ int main(int argc, char *argv[])
 					if (jkeypressed == 1)
 					{
 						bscan.copyTo(jscansave);
-						jthresholding = 1;			// setting the boolean flag
+						jlockin = 1;			// setting the boolean flag
 						jkeypressed = 0;
 					}
 					
 					if (ckeypressed == 1)
 					{
 						// clear the thresholding boolean
-						jthresholding = 0;
+						jlockin = 0;
 						ckeypressed = 0;
 					}
 
@@ -1296,7 +1312,7 @@ int main(int argc, char *argv[])
 						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 						imshow("Status", statusimg);
 						
-						if (jthresholding)
+						if (jlockin)
 						{
 							// save the respective j image also
 							sprintf(filename, "jscan%03d", indexi);
