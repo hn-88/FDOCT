@@ -1103,6 +1103,9 @@ int main(int argc, char *argv[])
 					sprintf(textbuffer,"fps = %d  Max intensity = %d", fps / 5, int(floor(maxVal)));
 					firstrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(0, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					sprintf(textbuffer,"%03d images acq.", indextemp);
+					secrowofstatusimgRHS = Mat::zeros(cv::Size(300, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(300, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 					imshow("Status", statusimg);
 					if (ROIreport)
 						printMinMaxAscan(bscandb, ascanat, numdisplaypoints, statusimg);
@@ -1202,7 +1205,7 @@ int main(int argc, char *argv[])
 				
 				if (indextemp >= averagestoggle) 
 				{
-					sprintf(textbuffer,"%03d images acq.", averagestoggle);
+					sprintf(textbuffer,"%03d images acq.", indextemp);
 					secrowofstatusimgRHS = Mat::zeros(cv::Size(300, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(300, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 					imshow("Status", statusimg);
@@ -1573,7 +1576,7 @@ int main(int argc, char *argv[])
 				////////////////////////////////////////////
 
 
-				key = waitKey(30); // wait 30 milliseconds for keypress
+				key = waitKey(3); // wait 30 milliseconds for keypress
 								  // max frame rate at 1280x960 is 30 fps => 33 milliseconds
 
 				switch (key)
