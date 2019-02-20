@@ -10,6 +10,7 @@ Basic build instructions for GCC using cmake:
 
 -------------------------
 File list:
+
  	BscanDark.cpp        - a test version with dark-frame subtraction
 	
 	BscanFFT.cpp 	       - the main software, with QHYCCD camera support
@@ -26,7 +27,7 @@ File list:
 	
 	CMakeLists.txt       - configuration file for the cmake environment
 	
-  multicamtest.cpp     - an attempt to use multiple QHY cameras at once - does not work.
+	multicamtest.cpp     - an attempt to use multiple QHY cameras at once - does not work.
   
   
 --------------------------------------------
