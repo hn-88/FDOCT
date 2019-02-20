@@ -1,12 +1,12 @@
 # FDOCT
-Code for doing realtime FD-OCT
+Code for doing realtime FD-OCT. See usage.txt for keystroke list, also enumerated in the code as comments.
 
 Basic build instructions for GCC using cmake:
 1. Make sure the required USB and OpenCV libraries and camera SDKs are installed.
 2. Modify the CMakeLists.txt file as required - if compiling for webcam, without QHY camera support, please remove the -lqhy dependency in CMakeLists.txt
 3. cd to the build directory
 4. cmake ..
-5. make 
+5. make BscanFFTwebcam.bin
 
 More documentation for basic compiling instructions etc is at https://github.com/hn-88/QHYCameratests/blob/master/readme.txt
 
