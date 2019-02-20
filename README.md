@@ -8,6 +8,20 @@ Basic build instructions for GCC using cmake:
 4. cmake ..
 5. make BscanFFTwebcam.bin
 
+-------------------------
+File list:
+ 	BscanDark.cpp        - a test version with dark-frame subtraction
+	BscanFFT.cpp 	       - the main software, with QHYCCD camera support
+	BscanFFTsim.cpp      - simulation using saved files, for testing and validation
+	BscanFFTwebcam.cpp   - webcam demo version of the main software, which does not need a QHYCCD camera
+	BscanFFTxml2m.cpp    - helper to convert output xml files to Matlab compatible m files
+	BscanFFTxml2mm.cpp   - helper to convert output xml files to multiple Matlab compatible m files
+	BscanFFTxml2ms.cpp   - helper to convert output xml files to multiple Matlab compatible m files, each with a single variable
+	CMakeLists.txt       - configuration file for the cmake environment
+  multicamtest.cpp     - an attempt to use multiple QHY cameras at once - does not work.
+  
+--------------------------------------------
+
 More documentation for basic compiling instructions etc is at https://github.com/hn-88/QHYCameratests/blob/master/readme.txt
 
 Documentation for cross platform compiling is at http://hnsws.blogspot.com/2018/03/cross-platform-issues.html
