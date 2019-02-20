@@ -12,3 +12,5 @@ http://hnsws.blogspot.com/2018/03/qhy-camera-glitch.html
 http://hnsws.blogspot.com/2018/03/qhy-sdk-windows-and-linux.html
 
 http://hnsws.blogspot.com/2018/03/windows-executable-slower.html
+
+If compiling for webcam, without QHY camera support, please remove the -lqhy dependency in CMakeLists.txt
