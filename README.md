@@ -1,6 +1,9 @@
 # FDOCT
 Code for doing realtime FD-OCT. See usage.txt for keystroke list, also enumerated in the code as comments.
 
+Release including a windows binary available - click on the DOI badge -  
+[![DOI](https://zenodo.org/badge/149837802.svg)](https://zenodo.org/badge/latestdoi/149837802)
+
 Basic build instructions for GCC using cmake:
 1. Make sure the required USB and OpenCV libraries and camera SDKs are installed.
 2. Modify the CMakeLists.txt file as required - if compiling for webcam, without QHY camera support, please remove the -lqhy dependency in CMakeLists.txt
