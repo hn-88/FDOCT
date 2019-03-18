@@ -414,7 +414,15 @@ int main(int argc, char *argv[])
 	int  fps, key;
 	int t_start, t_end;
 
-	std::ifstream infile("BscanFFT.ini");
+	//std::ifstream infile("BscanFFT.ini");
+	// if creating an AppImage, uncomment the above, 
+	// and use the lines below instead.
+	char* pPath;
+    pPath = getenv("OWD");		// Original Working Directory environment variable
+    strcat(pPath, "/BscanFFT.ini");
+	std::ifstream infile(pPath);
+	/////////////////////////////////
+	
 	std::string tempstring;
 	char dirdescr[60];
 	sprintf(dirdescr, "_");
@@ -527,8 +535,9 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
-		w=frame.cols;
-		h=frame.rows;
+		w = frame.cols;
+		//std::cerr << "w = " << w << ".\n";
+		h = frame.rows;
 	}
 	/////////////////////////////////////////////////////////
 		
