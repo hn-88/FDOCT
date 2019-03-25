@@ -1,8 +1,8 @@
 # FDOCT
 Code for doing realtime FD-OCT. See usage.txt for keystroke list, also enumerated in the code as comments.
 
-Release including a windows binary and an AppImage is now available - click on the DOI badge -  
- [![DOI](https://zenodo.org/badge/149837802.svg)](https://zenodo.org/badge/latestdoi/149837802)
+Release including a windows binary and an AppImage is now available - 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2605347.svg)](https://doi.org/10.5281/zenodo.2605347)
 
 Basic build instructions for GCC using cmake:
 1. Make sure the required USB and OpenCV libraries and camera SDKs are installed.
