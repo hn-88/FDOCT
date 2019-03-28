@@ -1,0 +1,24 @@
+language: cpp
+
+compiler:
+  - gcc
+  
+before_install:
+  - sudo apt-get update
+
+install:
+
+# OpenCV install code (modified from orignal source: https://github.com/jayrambhia/Install-OpenCV)
+
+  # OpenCV dependencies - Details available at: http://docs.opencv.org/trunk/doc/tutorials/introduction/linux_install/linux_install.html
+  - sudo apt-get install -y build-essential
+  - sudo apt-get install -y cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev
+  - sudo apt-get install -y python-dev python-numpy libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev libjasper-dev libdc1394-22-dev
+  - sudo apt-get install libopencv-dev
+
+before_script:
+  - mkdir build
+  - cd build
+  - cmake ..
+
+script: make BscanFFTwebcam.bin
