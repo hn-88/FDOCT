@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.4.7)
-PROJECT(QHYXXXDEMO)
+PROJECT(FDOCTDEMO)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake_modules/")
 
@@ -16,5 +16,5 @@ foreach(F ${SRC_LIST})
     string(SUBSTRING ${F} 0 ${NAMELENGTH} FILENAME)
     string(REPLACE .cpp .bin FILENAME1 ${FILENAME})
     add_executable(${FILENAME1} ${F})
-    target_link_libraries(${FILENAME1} -lqhy ${LIBUSB_1_LIBRARIES} ${OpenCV_LIBS}  )
+    target_link_libraries(${FILENAME1} ${LIBUSB_1_LIBRARIES} ${OpenCV_LIBS}  )
 endforeach(F)
