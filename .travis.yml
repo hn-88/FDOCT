@@ -21,4 +21,4 @@ before_script:
   - cd build
   - cmake ..
 
-script: make BscanFFTwebcamdemo.bin
+script: make BscanFFTwebcam.bin
