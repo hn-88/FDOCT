@@ -10,10 +10,8 @@
 
 
 /*
-* modified from ASKlive2.cpp
-* and LiveFrameSampleFFT.cpp
-*
-*
+* modified from BscanFFT.cpp
+* 
 * Implementing line scan FFT
 * for SD OCT
 * with binning
@@ -45,14 +43,17 @@
 * w decreases width of ROI for which avg val is reported, W increases width
 * h decreases the height (position), H increases
 * location of ROI is to the right of the index of reported ascan
-* e toggles rEporting/plotting of ROI average intensity
+* e toggles rEporting/plotting of intensity
+* 1 to start peak-hold for 1st reading - without modulation
+* 2 to start peak-hold for 2nd reading - with J0 null on ref arm
+* 3 to start peak-hold for 3rd reading - with sample being vibrated
 * 
 * ESC, x or X key quits
 *
 *
 *
 * Hari Nandakumar
-* 15 Sep 2018  *
+* 02 Apr 2019  *
 *
 *
 */
@@ -151,10 +152,11 @@ inline void printMinMaxAscan(Mat bscandb, uint ascanat, int numdisplaypoints, Ma
 	Mat thirdrowofstatusimg=statusimg(Rect(0, 150, 600, 50));
 	Mat fourthrowofstatusimg=statusimg(Rect(0, 200, 600, 50));
 	bscandb.col(ascanat).copyTo(ascan);
-	ascan.row(4).copyTo(ascan.row(1));	// masking out the DC in the display
-	ascan.row(4).copyTo(ascan.row(0));
-	ascan.row(4).copyTo(ascan.row(2));
-	ascan.row(4).copyTo(ascan.row(3));
+	ascan.row(5).copyTo(ascan.row(1));	// masking out the DC in the display
+	ascan.row(5).copyTo(ascan.row(0));
+	ascan.row(5).copyTo(ascan.row(2));
+	ascan.row(5).copyTo(ascan.row(3));
+	ascan.row(5).copyTo(ascan.row(4));
 	ascandisp = ascan.rowRange(0, numdisplaypoints);
 	//debug
 	//normalize(ascan, ascandebug, 0, 1, NORM_MINMAX);
@@ -1904,6 +1906,20 @@ int main(int argc, char *argv[])
 					else
 						clampupper = 1;
 					break;
+					
+				case '1':
+					// start acq to save the first pk hold value
+					break;
+					
+				case '2':
+					// start acq to save the 2 pk hold value
+					break;
+					
+				case '3':
+					// start acq to save the 3 pk hold value
+					// increase index and display onscreen
+					break;
+					
 
 				default:
 					break;
