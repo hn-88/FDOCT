@@ -6,7 +6,7 @@ Release including a windows binary and an AppImage is now available -
 
 Basic build instructions for GCC using cmake:
 1. Make sure the required USB and OpenCV libraries and camera SDKs are installed.
-2. Modify the CMakeLists.txt file as required - if compiling for webcam, without QHY camera support, please remove the -lqhy dependency in CMakeLists.txt
+2. Modify the CMakeLists.txt file as required - if compiling for webcam, without QHY camera support, please remove the -lqhy dependency in CMakeLists.txt by renaming CMakeLists.txt.webcam as CMakeLists.txt, or, if using qhy support, rename CMakeLists.txt.qhy as CMakeLists.txt  
 3. cd to the build directory
 4. cmake ..
 5. make BscanFFTwebcam.bin
@@ -16,7 +16,9 @@ File list:
 
  	BscanDark.cpp        - a test version with dark-frame subtraction
 	
-	BscanFFT.cpp 	       - the main software, with QHYCCD camera support
+	BscanFFT.cpp 	     - the main software, with QHYCCD camera support
+	
+	BscanFFTpeak.cpp     - variant of the main software, with QHYCCD camera support and peak intensity display
 	
 	BscanFFTsim.cpp      - simulation using saved files, for testing and validation
 	
@@ -28,7 +30,11 @@ File list:
 	
 	BscanFFTxml2ms.cpp   - helper to convert output xml files to multiple Matlab compatible m files, each with a single variable
 	
-	CMakeLists.txt       - configuration file for the cmake environment
+	CMakeLists.txt       - configuration file for the cmake environment 
+	
+	CMakeLists.txt.qhy   - rename this as CMakeLists.txt if building with qhy support
+	
+	CMakeLists.txt.webcam   - rename this as CMakeLists.txt if building without qhy, supporting only a webcam
 	
 	multicamtest.cpp     - an attempt to use multiple QHY cameras at once - does not work.
   
