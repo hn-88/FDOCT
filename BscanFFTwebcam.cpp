@@ -71,6 +71,8 @@
 #ifdef __unix__
 #include <unistd.h>
 //#include <libqhy/qhyccd.h> webcam version wo need for QHY
+#include <fstream>
+// travis ci build errors
 #endif
 
 #include <string.h>
