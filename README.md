@@ -11,6 +11,8 @@ Basic build instructions for GCC using cmake:
 4. cmake ..
 5. make BscanFFTwebcam.bin
 
+The .travis.yml file contains build instructions for Travis CI - travis-ci.org - which can be replicated on the commandline for building. 
+
 -------------------------
 File list:
 
