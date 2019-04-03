@@ -1,0 +1,12 @@
+#!/usr/bin/env xdg-open
+
+[Desktop Entry]
+Version=1.0
+Name=FDOCTwebcam
+Comment=FDOCT tool
+Exec=BscanFFTwebcam.bin
+Icon=BscanFFTwebcam
+Terminal=true
+Type=Application
+Categories=Development;
+Name[en_IN]=BscanFFTwebcam
