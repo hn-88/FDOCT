@@ -103,7 +103,7 @@ inline void printAvgROI(Mat bscandb, uint ascanat, uint vertposROI, uint widthRO
 	Scalar meanVal;
 	uint heightROI = 3;
 	char textbuffer[80];
-	Mat lastrowofstatusimg=statusimg(Rect(0, 250, 600, 50)); // x,y,width,height
+	Mat sixthrowofstatusimg=statusimg(Rect(0, 250, 600, 50)); // x,y,width,height
 	
 	if(ascanat+widthROI<bscandb.cols)
 	{
@@ -113,7 +113,7 @@ inline void printAvgROI(Mat bscandb, uint ascanat, uint vertposROI, uint widthRO
 		meanVal = mean(AvgROI);
 		//printf("Mean of ROI at %d = %f dB\n", ascanat, meanVal(0));
 		sprintf(textbuffer, "Mean of ROI at %d = %f dB", ascanat, meanVal(0));
-		lastrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+		sixthrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 		putText(statusimg, textbuffer, Point(0, 280), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 		imshow("Status", statusimg);
 		// in ROIplot, we take the range to be 0 to 50 dB
@@ -139,18 +139,343 @@ inline void printAvgROI(Mat bscandb, uint ascanat, uint vertposROI, uint widthRO
 	}
 	else
 		sprintf(textbuffer,"ascanat+widthROI > width of image!");
-		lastrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+		sixthrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 		putText(statusimg, textbuffer, Point(0, 280), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 		imshow("Status", statusimg);
 }
+
+
+inline double besseldbinverse(double y)
+{
+	// implements a lookup table to calculate the inverse of
+	// y = | 20*log10(besselj(0,x)) |
+	
+	double x;
+	
+	if 		( y > 30)
+		x=2.38;
+	
+	else if ( y > 25 )
+		x=2.33;
+		
+	else if ( y > 21.65 )
+		x=2.27;
+		
+	else if ( y > 19.2 )
+		x=2.22;
+		
+	else if ( y > 17.18 )
+		x=2.17;
+		
+	else if ( y > 15.56 )
+		x=2.12;
+		
+	else if ( y > 14.19 )
+		x=2.07;
+		
+	else if ( y > 13 )
+		x=2.02;
+		
+	else if ( y > 11.94 )
+		x=1.97;
+		
+	else if ( y > 11 )
+		x=1.92;
+		
+	else if ( y > 10.15 )
+		x=1.87;
+		
+	else if ( y > 9.37 )
+		x=1.82;
+		
+	else if ( y > 8.66 )
+		x=1.77;
+		
+	else if ( y > 8 )
+		x=1.72;
+		
+	else if ( y > 7.4 )
+		x=1.67;
+		
+	else if ( y > 6.83 )
+		x=1.62;
+		
+	else if ( y > 6.30 )
+		x=1.57;
+		
+	else if ( y > 5.82 )
+		x=1.52;
+		
+	else if ( y > 5.36 )
+		x=1.47;
+		
+	else if ( y > 4.931 )
+		x=1.42;
+		
+	else if ( y > 4.528 )
+		x=1.37;
+		
+	else if ( y > 4.151 )
+		x=1.32;
+		
+	else if ( y > 3.797 )
+		x=1.27;
+		
+	else if ( y > 3.464 )
+		x=1.22;
+		
+	else if ( y > 3.151 )
+		x=1.17;
+		
+	else if ( y > 2.858 )
+		x=1.12;
+		
+	else if ( y > 2.583 )
+		x=1.07;
+		
+	else if ( y > 2.3245 )
+		x=1.02;
+		
+	else if ( y > 2.08286 )
+		x=0.97;
+		
+	else if ( y > 1.85689 )
+		x=0.92;
+		
+	else if ( y > 1.64601 )
+		x=0.87;
+		
+	else if ( y > 1.44964 )
+		x=0.82;
+		
+	else if ( y > 1.26729 )
+		x=0.77;
+		
+	else if ( y > 1.09850 )
+		x=0.72;
+		
+	else if ( y > 0.94288 )
+		x=0.67;
+		
+	else if ( y > 0.80006 )
+		x=0.62;
+		
+	else if ( y > 0.66972 )
+		x=0.57;
+		
+	else if ( y > 0.55159 )
+		x=0.52;
+		
+	else if ( y > 0.44542 )
+		x=0.47;
+		
+	else if ( y > 0.35097 )
+		x=0.42;
+		
+	else if ( y > 0.26807 )
+		x=0.37;
+		
+	else if ( y > 0.19654 )
+		x=0.32;
+		
+	else if ( y > 0.13625 )
+		x=0.27;
+		
+	else if ( y > 0.08708 )
+		x=0.22;
+		
+	else if ( y > 0.04893 )
+		x=0.17;
+		
+	else if ( y > 0.02173 )
+		x=0.12;
+		
+	else if ( y > 0.00543 )
+		x=0.07;
+		
+	else x = 0.0;
+	
+	return x;
+	
+}
+
+inline double errnull(double y)
+{
+	// implements a lookup table to calculate the error in
+	// getting the null value of besselj(0,x).
+	// 
+	// y = | 20*log10(besselj(0,x)) |
+	// 
+	// For example, y = -30 dB indicates an error of 0.05 in x, since
+	// besseldbinverse(30)=2.35, which is approx 0.05 away from 
+	// the actual null at 2.405
+	
+	double x, err;
+	
+	x=besseldbinverse(y);
+	err=2.405-x;
+	
+	return err;
+	
+}
+	
+
+inline void printPeakHoldAscan(Mat bscandb, uint ascanat, int numdisplaypoints, Mat& statusimg, \
+		uint& peakholdframecount, uint peakholdnumframes, \
+		bool& num1keypressed, bool& num2keypressed, bool& num3keypressed, \
+		double& max1val, double& max2val, double& max3val, float lambda0 )
+{
+	if (num1keypressed || num2keypressed || num3keypressed == 1)
+	{
+		Mat ascan, ascandisp;
+		double minVal, maxVal;
+		char textbuffer[80];
+		double dispnm, dBdiff13, dBdiff12, errnm;
+		double pi = 3.141592653589793;
+		Mat thirdrowofstatusimg=statusimg(Rect(0, 100, 600, 50));
+		
+		bscandb.col(ascanat).copyTo(ascan);
+			// not considering the DC in pixels 0,1,2,3,4
+		
+		ascandisp = ascan.rowRange(6, numdisplaypoints);
+		minMaxLoc(ascandisp, &minVal, &maxVal);
+		if (num1keypressed == 1 )
+		{
+			if (peakholdframecount == 0) // beginning the hold
+			{
+				// display a confirmation message
+				sprintf(textbuffer,"PkHold%d 1 of Ascan%d begun.", peakholdnumframes, ascanat);
+				thirdrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+				putText(statusimg, textbuffer, Point(0, 130), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+			}
+			if (peakholdframecount < peakholdnumframes)
+			{
+				peakholdframecount++;
+				if ( maxVal > max1val )
+					max1val = maxVal;
+					
+				sprintf(textbuffer,"PkHold%d 1 of Ascan%d = %d fr", peakholdnumframes, ascanat, peakholdframecount);
+				thirdrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+				putText(statusimg, textbuffer, Point(0, 130), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+			}
+			else  // the peak hold is finished, display 
+			{
+				num1keypressed = 0;
+				peakholdframecount = 0;
+				sprintf(textbuffer,"PkHold%d 1 = %f dB", peakholdnumframes, max1val);
+				thirdrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+				putText(statusimg, textbuffer, Point(0, 130), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+			}
+			
+		} // end if (num1keypressed == 1 )
+		
+		if (num2keypressed == 1 )
+		{
+			if (peakholdframecount == 0) // beginning the hold
+			{
+				// display a confirmation message
+				sprintf(textbuffer,"PkHold%d 2 of Ascan%d begun.", peakholdnumframes, ascanat);
+				thirdrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+				putText(statusimg, textbuffer, Point(0, 130), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+			}
+			if (peakholdframecount < peakholdnumframes)
+			{
+				peakholdframecount++;
+				if ( maxVal > max2val )
+					max2val = maxVal;
+					
+				sprintf(textbuffer,"PkHold%d 2 of Ascan%d = %d fr", peakholdnumframes, ascanat, peakholdframecount);
+				thirdrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+				putText(statusimg, textbuffer, Point(0, 130), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+			}
+			else  // the peak hold is finished, display 
+			{
+				num2keypressed = 0;
+				peakholdframecount = 0;
+				sprintf(textbuffer,"PkHold%d 2 = %f dB", peakholdnumframes, max2val);
+				thirdrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+				putText(statusimg, textbuffer, Point(0, 130), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+			}
+			
+		} // end if (num2keypressed == 1 )
+		
+		if (num3keypressed == 1 )
+		{
+			if (peakholdframecount == 0) // beginning the hold
+			{
+				// display a confirmation message
+				sprintf(textbuffer,"PkHold%d 3 of Ascan%d begun.", peakholdnumframes, ascanat);
+				thirdrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+				putText(statusimg, textbuffer, Point(0, 130), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+			}
+			if (peakholdframecount < peakholdnumframes)
+			{
+				peakholdframecount++;
+				if ( maxVal > max3val )
+					max3val = maxVal;
+					
+				sprintf(textbuffer,"PkHold%d 3 of Ascan%d = %d fr", peakholdnumframes, ascanat, peakholdframecount);
+				thirdrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+				putText(statusimg, textbuffer, Point(0, 130), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+			}
+			else  // the peak hold is finished, display 
+			{
+				num3keypressed = 0;
+				peakholdframecount = 0;
+				sprintf(textbuffer,"PkHold%d 3 = %f dB", peakholdnumframes, max3val);
+				thirdrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+				putText(statusimg, textbuffer, Point(0, 130), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+				
+				Mat fourthrowofstatusimg=statusimg(Rect(0, 150, 600, 50));
+				Mat fifthrowofstatusimg=statusimg(Rect(0, 200, 600, 50));
+				Mat sixthrowofstatusimg=statusimg(Rect(0, 250, 600, 50)); // x,y,width,height
+				
+				dBdiff12 = max1val-max2val;
+				sprintf(textbuffer,"1/2 = %f dB", dBdiff12);
+				fourthrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+				putText(statusimg, textbuffer, Point(0, 180), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+				
+				dBdiff13 = max1val-max3val;
+				sprintf(textbuffer,"1/3 = %f dB", dBdiff13);
+				fifthrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+				putText(statusimg, textbuffer, Point(0, 230), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+				
+				// assuming the max3val to be due to vibration 
+				// which is less than the first J0 null
+				
+				// x = besseldbinverse(dBdiff13);
+				// where displacement A is given by
+				// x=2*k*A for wavenumber k
+				// taking k=2*pi/lambda0 for centre wavelength lambda0
+				// A = x*lambda0 / (4*pi)
+				dispnm  = besseldbinverse(dBdiff13)*lambda0*1e9/(4*pi);
+				errnm = errnull(dBdiff12)*lambda0*1e9/(4*pi);
+				
+				// debug
+				//std::cout<<"errnull="<<errnull(dBdiff12)<<std::endl;
+				
+				sprintf(textbuffer,"disp = %3.2f +- %1.2f nm", dispnm,errnm);
+				sixthrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+				putText(statusimg, textbuffer, Point(0, 280), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+				
+			}
+			
+		} // end if (num2keypressed == 1 )
+		
+		
+	} // end if (num1keypressed || num2keypressed || num3keypressed == 1)
+	
+}
+
 
 inline void printMinMaxAscan(Mat bscandb, uint ascanat, int numdisplaypoints, Mat& statusimg)
 {
 	Mat ascan, ascandisp;
 	double minVal, maxVal;
 	char textbuffer[80];
-	Mat thirdrowofstatusimg=statusimg(Rect(0, 150, 600, 50));
-	Mat fourthrowofstatusimg=statusimg(Rect(0, 200, 600, 50));
+	Mat thirdrowofstatusimg=statusimg(Rect(0, 100, 600, 50));
+	Mat fourthrowofstatusimg=statusimg(Rect(0, 150, 600, 50));
+	Mat fifthrowofstatusimg=statusimg(Rect(0, 200, 600, 50));
 	bscandb.col(ascanat).copyTo(ascan);
 	ascan.row(5).copyTo(ascan.row(1));	// masking out the DC in the display
 	ascan.row(5).copyTo(ascan.row(0));
@@ -163,10 +488,10 @@ inline void printMinMaxAscan(Mat bscandb, uint ascanat, int numdisplaypoints, Ma
 	//imshow("debug", ascandebug);
 	minMaxLoc(ascandisp, &minVal, &maxVal);
 	sprintf(textbuffer,"Max of Ascan%d = %f dB", ascanat, maxVal);
-	thirdrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+	fourthrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 	putText(statusimg, textbuffer, Point(0, 180), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 	sprintf(textbuffer,"Min of Ascan%d = %f dB", ascanat, minVal);
-	fourthrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+	fifthrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 	putText(statusimg, textbuffer, Point(0, 230), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 	imshow("Status", statusimg);
 	
@@ -378,6 +703,8 @@ int main(int argc, char *argv[])
 
 	bool doneflag = 0, skeypressed = 0, bkeypressed = 0, pkeypressed = 0;
 	bool jlockin = 0, jkeypressed = 0, ckeypressed = 0;
+	bool num1keypressed = 0, num2keypressed = 0, num3keypressed = 0;
+	uint peakholdframecount = 0;
 	Mat jmask, jmaskt;
 	double lambdamin, lambdamax;
 	lambdamin = 816e-9;
@@ -387,6 +714,8 @@ int main(int argc, char *argv[])
 	double bscanthreshold = -30.0;
 	bool rowwisenormalize = 0;
 	bool donotnormalize = 1;
+	uint peakholdnumframes = 100; 
+	double max1val=0.0, max2val=0.0, max3val=0.0;
 
 	w = 640;
 	h = 480;
@@ -394,7 +723,7 @@ int main(int argc, char *argv[])
 	int  fps, key;
 	int t_start, t_end;
 
-	std::ifstream infile("BscanFFT.ini");
+	std::ifstream infile("BscanFFTpeak.ini");
 	std::string tempstring;
 	char dirdescr[60];
 	sprintf(dirdescr, "_");
@@ -472,6 +801,8 @@ int main(int argc, char *argv[])
 		infile >> rowwisenormalize;
 		infile >> tempstring;
 		infile >> donotnormalize;
+		infile >> tempstring;
+		infile >> peakholdnumframes;
 		infile.close();
 		
 		lambdamin = atof(lambdaminstr);
@@ -1232,6 +1563,9 @@ int main(int argc, char *argv[])
 					log(bscan, bscanlog);					// switch to logarithmic scale
 															//convert to dB = 20 log10(value), from the natural log above
 					bscandb = 20.0 * bscanlog / 2.303;
+					printPeakHoldAscan(bscandb, ascanat, numdisplaypoints, statusimg, \
+		  peakholdframecount, peakholdnumframes, num1keypressed, num2keypressed, num3keypressed, \
+		  max1val, max2val, max3val, lambda0);
 					
 					bscandb.row(4).copyTo(bscandb.row(1));	// masking out the DC in the display
                     bscandb.row(4).copyTo(bscandb.row(0));
@@ -1909,15 +2243,27 @@ int main(int argc, char *argv[])
 					
 				case '1':
 					// start acq to save the first pk hold value
+					// if 3 or 2 acq are not going on
+					if(num3keypressed == 0)
+					if(num2keypressed == 0)
+						num1keypressed = 1;
 					break;
 					
 				case '2':
 					// start acq to save the 2 pk hold value
+					// if 1 or 3 acq is not going on
+					if(num1keypressed == 0)
+					if(num3keypressed == 0)
+						num2keypressed = 1;
 					break;
 					
 				case '3':
 					// start acq to save the 3 pk hold value
 					// increase index and display onscreen
+					// if 1 and 2 acq are not going on
+					if(num1keypressed == 0)
+					if(num2keypressed == 0)
+						num3keypressed = 1;
 					break;
 					
 
