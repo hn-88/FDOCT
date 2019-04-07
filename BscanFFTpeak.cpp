@@ -104,7 +104,7 @@ using namespace cv;
 int ROIposx=0, ROIposy=0, ROIw=10, ROIh=10; 
 Point P1, P2;
 bool clicked;
-Mat profileimg, profilearray;
+Mat profileimg, profilearray, max1vals, max2vals, max3vals;
 
 void onMouse( int event, int x, int y, int f, void* )
 {
@@ -168,6 +168,11 @@ void onMouse( int event, int x, int y, int f, void* )
 		}
 
     } // end if clicked
+    
+    max1vals = Mat::zeros(Size(ROIw, 1), CV_64F);
+	max2vals = Mat::zeros(Size(ROIw, 1), CV_64F);
+	max3vals = Mat::zeros(Size(ROIw, 1), CV_64F);
+	profilearray = Mat::zeros(Size(ROIw, 1), CV_64F);
     
 }
 
@@ -405,25 +410,17 @@ inline double errnull(double y)
 	
 }
 
-inline void showVibProfile(Mat bscandb)
+inline void showVibProfile(Mat profilearray)
 {
-	Mat bs, bsdisp, bsdisptemp, profileflipped;
+	Mat profileflipped;
 	
-	bscandb.copyTo(bs);
-		// masking out the DC in the display
-	// by taking only ROI rowrange and not from 0
-	bsdisptemp = bs.colRange(ROIposx,ROIposx+ROIw);
-	bsdisp = bsdisptemp.rowRange(ROIposy, ROIposy+ROIh);
-	reduce(bsdisp, profilearray, 0, CV_REDUCE_MAX);	
-	//void reduce(InputArray src, OutputArray dst, int dim, int rtype, int dtype=-1 )
-	// dim=0 -> makes output a row matrix - columnwise reduction
-	profileflipped = Mat::zeros(cv::Size(bsdisp.cols, 3*160), CV_8U);
-	profileimg = Mat::zeros(cv::Size(bsdisp.cols, 3*160), CV_8U);
+	profileflipped = Mat::zeros(cv::Size(profilearray.cols, 3*160), CV_8U);
+	profileimg = Mat::zeros(cv::Size(profilearray.cols, 3*160), CV_8U);
 	// we assume the vibration values in nm to be between 0 and 160
 	// and we multiply by 3 to make the line a bit thicker.
 	int vertindex;
 	 
-	for (int xindex = 0; xindex < bsdisp.cols; xindex++)
+	for (int xindex = 0; xindex < profilearray.cols; xindex++)
 	{
 		vertindex = int(abs(3 * floor(profilearray.at<double>(0, xindex))));
 		for (int smalloopi = -1; smalloopi < 2; smalloopi++)
@@ -468,17 +465,26 @@ inline void printPeakHoldAscan(Mat bscandb, uint ascanat, int numdisplaypoints, 
 	if (num1keypressed || num2keypressed || num3keypressed == 1)
 	{
 		Mat ascan, ascandisp;
+		Mat bs, bsdisptemp, bsdisp, maxarray;
+		
 		double minVal, maxVal;
 		char textbuffer[80];
 		double dispnm, dBdiff13, dBdiff12, errnm;
+		Mat dBdiff13vals;
 		double pi = 3.141592653589793;
 		Mat thirdrowofstatusimg=statusimg(Rect(0, 100, 600, 50));
 		
 		bscandb.col(ascanat).copyTo(ascan);
+		bscandb.copyTo(bs);
 			// not considering the DC in pixels 0,1,2,3,4
 		
 		ascandisp = ascan.rowRange(6, numdisplaypoints);
 		minMaxLoc(ascandisp, &minVal, &maxVal);
+		
+		bsdisptemp = bs.colRange(ROIposx,ROIposx+ROIw);
+		bsdisp = bsdisptemp.rowRange(ROIposy, ROIposy+ROIh);
+		reduce(bsdisp, maxarray, 0, CV_REDUCE_MAX);
+		
 		if (num1keypressed == 1 )
 		{
 			if (peakholdframecount == 0) // beginning the hold
@@ -493,6 +499,7 @@ inline void printPeakHoldAscan(Mat bscandb, uint ascanat, int numdisplaypoints, 
 				peakholdframecount++;
 				if ( maxVal > max1val )
 					max1val = maxVal;
+				max1vals = max(maxarray, max1vals);
 					
 				sprintf(textbuffer,"PkHold%d 1 of Ascan%d = %d fr", peakholdnumframes, ascanat, peakholdframecount);
 				thirdrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
@@ -523,7 +530,8 @@ inline void printPeakHoldAscan(Mat bscandb, uint ascanat, int numdisplaypoints, 
 				peakholdframecount++;
 				if ( maxVal > max2val )
 					max2val = maxVal;
-					
+				max2vals = max(maxarray, max2vals);
+				
 				sprintf(textbuffer,"PkHold%d 2 of Ascan%d = %d fr", peakholdnumframes, ascanat, peakholdframecount);
 				thirdrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 				putText(statusimg, textbuffer, Point(0, 130), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
@@ -553,6 +561,7 @@ inline void printPeakHoldAscan(Mat bscandb, uint ascanat, int numdisplaypoints, 
 				peakholdframecount++;
 				if ( maxVal > max3val )
 					max3val = maxVal;
+				max3vals = max(maxarray, max3vals);
 					
 				sprintf(textbuffer,"PkHold%d 3 of Ascan%d = %d fr", peakholdnumframes, ascanat, peakholdframecount);
 				thirdrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
@@ -576,6 +585,8 @@ inline void printPeakHoldAscan(Mat bscandb, uint ascanat, int numdisplaypoints, 
 				putText(statusimg, textbuffer, Point(0, 180), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 				
 				dBdiff13 = max1val-max3val;
+				dBdiff13vals = max1vals - max3vals;
+				
 				sprintf(textbuffer,"1/3 = %f dB", dBdiff13);
 				fifthrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 				putText(statusimg, textbuffer, Point(0, 230), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
@@ -591,6 +602,15 @@ inline void printPeakHoldAscan(Mat bscandb, uint ascanat, int numdisplaypoints, 
 				dispnm  = besseldbinverse(dBdiff13)*lambda0*1e9/(4*pi);
 				errnm = errnull(dBdiff12)*lambda0*1e9/(4*pi);
 				
+				//////////////////////////
+				// loop to calculate displacement profiles
+				
+				for (int indexv=0; indexv<ROIw; indexv++)
+				{
+					profilearray.at<double>(0,indexv) = besseldbinverse(dBdiff13vals.at<double>(0,indexv))*lambda0*1e9/(4*pi);
+				}
+				/////////////////////////////
+				
 				// debug
 				//std::cout<<"errnull="<<errnull(dBdiff12)<<std::endl;
 				
@@ -599,7 +619,7 @@ inline void printPeakHoldAscan(Mat bscandb, uint ascanat, int numdisplaypoints, 
 				putText(statusimg, textbuffer, Point(0, 280), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 				
 				if (displayvibrprofile==1)
-					showVibProfile(bscandb);
+					showVibProfile(profilearray);
 				
 			}
 			
@@ -864,7 +884,7 @@ int main(int argc, char *argv[])
 	bool donotnormalize = 1;
 	uint peakholdnumframes = 100; 
 	double max1val=0.0, max2val=0.0, max3val=0.0;
-
+	
 	w = 640;
 	h = 480;
 
@@ -2488,7 +2508,10 @@ int main(int argc, char *argv[])
 					// ROIw increase
 					if(ROIposx+ROIw < bscandb.cols)
 						ROIw++;
-					
+					max1vals = Mat::zeros(Size(ROIw, 1), CV_64F);
+					max2vals = Mat::zeros(Size(ROIw, 1), CV_64F);
+					max3vals = Mat::zeros(Size(ROIw, 1), CV_64F);
+					profilearray = Mat::zeros(Size(ROIw, 1), CV_64F);
 					break;
 					
 				case 'm':
@@ -2496,7 +2519,10 @@ int main(int argc, char *argv[])
 					// ROIw decrease
 					if(ROIw > 1)
 						ROIw--;
-					
+					max1vals = Mat::zeros(Size(ROIw, 1), CV_64F);
+					max2vals = Mat::zeros(Size(ROIw, 1), CV_64F);
+					max3vals = Mat::zeros(Size(ROIw, 1), CV_64F);
+					profilearray = Mat::zeros(Size(ROIw, 1), CV_64F);
 					break;
 					
 				case '?':
