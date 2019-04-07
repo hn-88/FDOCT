@@ -44,9 +44,23 @@
 * h decreases the height (position), H increases
 * location of ROI is to the right of the index of reported ascan
 * e toggles rEporting/plotting of intensity
+* 
 * 1 to start peak-hold for 1st reading - without modulation
 * 2 to start peak-hold for 2nd reading - with J0 null on ref arm
 * 3 to start peak-hold for 3rd reading - with sample being vibrated
+* 
+* R to select Peak Hold Region of Interest (toggle ROI display on and off)
+* < for ROI (top-left) position left
+* > for ROI (top-left) position right
+* . for ROI (top-left) position up
+* , for ROI (top-left) position down
+* m for ROI width decrease
+* M for ROI width increase
+* / for ROI height decrease
+* ? for ROI height increase
+* 
+* V to toggle display of vibration profile
+* Z to save vibration profile
 * 
 * ESC, x or X key quits
 *
@@ -85,6 +99,78 @@
 
 
 using namespace cv;
+
+// have to make these global so that the onMouse can see them
+int ROIposx=0, ROIposy=0, ROIw=10, ROIh=10; 
+Point P1, P2;
+bool clicked;
+Mat profileimg, profilearray;
+
+void onMouse( int event, int x, int y, int f, void* )
+{
+	// modified from https://stackoverflow.com/questions/22140880/drawing-rectangle-or-line-using-mouse-events-in-open-cv-using-python
+    switch(event)
+    {
+
+        case  CV_EVENT_LBUTTONDOWN  :
+                                        clicked=1;
+
+                                        P1.x=x;
+                                        P1.y=y;
+                                        P2.x=x;
+                                        P2.y=y;
+                                        break;
+
+        case  CV_EVENT_LBUTTONUP    :
+                                        P2.x=x;
+                                        P2.y=y;
+                                        clicked=0;
+                                        
+                                        break;
+
+        case  CV_EVENT_MOUSEMOVE    :
+                                        
+                                        if(clicked==1){
+                                        P2.x=x;
+                                        P2.y=y;
+                                        
+                                        }
+                                        break;
+
+        default                     :   break;
+
+
+    }
+
+
+    if(clicked==1)
+    {
+		 if(P1.x>P2.x)
+		 { 
+			 ROIposx=P2.x;
+			 ROIw=P1.x-P2.x; 
+		 }
+		else 
+		 {         
+			 ROIposx=P1.x;
+			 ROIw=P2.x-P1.x; 
+		 }
+
+		if(P1.y>P2.y)
+		{ 
+			ROIposy=P2.y;
+			ROIh=P1.y-P2.y; 
+		}
+		else 
+		{
+			ROIposy=P1.y;
+			ROIh=P2.y-P1.y; 
+		}
+
+    } // end if clicked
+    
+}
+
 
 inline void normalizerows(Mat& src, Mat& dst, double lowerlim, double upperlim)
 {
@@ -318,12 +404,66 @@ inline double errnull(double y)
 	return err;
 	
 }
+
+inline void showVibProfile(Mat bscandb)
+{
+	Mat bs, bsdisp, bsdisptemp, profileflipped;
+	
+	bscandb.copyTo(bs);
+		// masking out the DC in the display
+	// by taking only ROI rowrange and not from 0
+	bsdisptemp = bs.colRange(ROIposx,ROIposx+ROIw);
+	bsdisp = bsdisptemp.rowRange(ROIposy, ROIposy+ROIh);
+	reduce(bsdisp, profilearray, 0, CV_REDUCE_MAX);	
+	//void reduce(InputArray src, OutputArray dst, int dim, int rtype, int dtype=-1 )
+	// dim=0 -> makes output a row matrix - columnwise reduction
+	profileflipped = Mat::zeros(cv::Size(bsdisp.cols, 3*160), CV_8U);
+	profileimg = Mat::zeros(cv::Size(bsdisp.cols, 3*160), CV_8U);
+	// we assume the vibration values in nm to be between 0 and 160
+	// and we multiply by 3 to make the line a bit thicker.
+	int vertindex;
+	 
+	for (int xindex = 0; xindex < bsdisp.cols; xindex++)
+	{
+		vertindex = int(abs(3 * floor(profilearray.at<double>(0, xindex))));
+		for (int smalloopi = -1; smalloopi < 2; smalloopi++)
+			{
+				if ((vertindex + smalloopi) > 0)
+					if ((vertindex + smalloopi) < 3*160)
+						profileflipped.at<uchar>(vertindex + smalloopi, xindex) = 255;
+			}
+	}
+	// debug test module
+	// to plot y=x and check for straight line
+	//////////////////
+	/*
+	for (int xindex = 0; xindex < 150; xindex++)
+	{
+		vertindex = 3 * xindex;
+		for (int smalloopi = -1; smalloopi < 2; smalloopi++)
+		{
+			
+			if ((vertindex + smalloopi) > 0)
+				if ((vertindex + smalloopi) < 3*160)
+					profileflipped.at<uchar>(vertindex + smalloopi, xindex) = 255;
+		}
+	}
+	///////////////////////
+	* */
+	flip(profileflipped, profileimg, 0);	// to change origin from top left to bottom left.
+
+	imshow("Vibration profile - 0 to 160 nm", profileimg);
+		
+	
+}
+
+
 	
 
 inline void printPeakHoldAscan(Mat bscandb, uint ascanat, int numdisplaypoints, Mat& statusimg, \
 		uint& peakholdframecount, uint peakholdnumframes, \
 		bool& num1keypressed, bool& num2keypressed, bool& num3keypressed, \
-		double& max1val, double& max2val, double& max3val, float lambda0 )
+		double& max1val, double& max2val, double& max3val, float lambda0, bool displayvibrprofile )
 {
 	if (num1keypressed || num2keypressed || num3keypressed == 1)
 	{
@@ -458,9 +598,12 @@ inline void printPeakHoldAscan(Mat bscandb, uint ascanat, int numdisplaypoints, 
 				sixthrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 				putText(statusimg, textbuffer, Point(0, 280), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 				
+				if (displayvibrprofile==1)
+					showVibProfile(bscandb);
+				
 			}
 			
-		} // end if (num2keypressed == 1 )
+		} // end if (num3keypressed == 1 )
 		
 		
 	} // end if (num1keypressed || num2keypressed || num3keypressed == 1)
@@ -684,6 +827,7 @@ int main(int argc, char *argv[])
 	unsigned int w, h, bpp = 8, channels, cambitdepth = 16;
 	unsigned int offsetx = 0, offsety = 0;
 	unsigned int indexi, manualindexi, averages = 1, opw, oph;
+	unsigned int vibrindexi;
 	uint  indextemp;
 	//uint indextempl;
 	uint ascanat=20;
@@ -702,6 +846,10 @@ int main(int argc, char *argv[])
 	bool ROIreport=0;
 
 	bool doneflag = 0, skeypressed = 0, bkeypressed = 0, pkeypressed = 0;
+	bool bROI=0, displayvibrprofile=1;
+	
+	Mat ROIoverlay, output;
+	
 	bool jlockin = 0, jkeypressed = 0, ckeypressed = 0;
 	bool num1keypressed = 0, num2keypressed = 0, num3keypressed = 0;
 	uint peakholdframecount = 0;
@@ -1287,6 +1435,17 @@ int main(int argc, char *argv[])
 				resize(m, opm, Size(), 1.0 / binvalue, 1.0 / binvalue, INTER_AREA);	// binning (averaging)
 				imshow("show", opm);
 				
+				if (bROI)	// if ROI selection is turned on, overlay and display
+				{
+					cmagI.copyTo(ROIoverlay);
+					// void rectangle(Mat& img, Point pt1, Point pt2, const Scalar& color, int thickness=1, 
+					//			int lineType=8, int shift=0)
+					rectangle(ROIoverlay, Point(ROIposx, ROIposy),  Point(ROIposx+ROIw, ROIposy+ROIh), Scalar(255,255,255), 1);
+					
+					imshow("selectROI",ROIoverlay);
+					setMouseCallback("selectROI",onMouse);
+				} 
+				
 				if (saveinterferograms)
 						{
 							// save mraw to active buffer
@@ -1565,7 +1724,7 @@ int main(int argc, char *argv[])
 					bscandb = 20.0 * bscanlog / 2.303;
 					printPeakHoldAscan(bscandb, ascanat, numdisplaypoints, statusimg, \
 		  peakholdframecount, peakholdnumframes, num1keypressed, num2keypressed, num3keypressed, \
-		  max1val, max2val, max3val, lambda0);
+		  max1val, max2val, max3val, lambda0, displayvibrprofile);
 					
 					bscandb.row(4).copyTo(bscandb.row(1));	// masking out the DC in the display
                     bscandb.row(4).copyTo(bscandb.row(0));
@@ -2264,6 +2423,105 @@ int main(int argc, char *argv[])
 					if(num1keypressed == 0)
 					if(num2keypressed == 0)
 						num3keypressed = 1;
+					break;
+					
+				case 'r':
+				case 'R':
+
+					// toggle the bROI boolean
+					if (bROI==0)
+					 bROI=1;
+					 else
+					 {
+						 bROI=0;
+						 destroyWindow("selectROI");
+					 }
+					break;
+					
+				case 'v':
+				case 'V':
+
+					// toggle the displayvibrprofile boolean
+					if (displayvibrprofile==0)
+					 displayvibrprofile=1;
+					 else
+					 {
+						 displayvibrprofile=0;
+						 //destroyWindow("Vibration profile - 0 to 160 nm");
+					 }
+					break;
+					
+				case '>':
+
+					// ROIposx to the right
+					if(ROIposx+ROIw < bscandb.cols)
+						ROIposx++;
+					
+					break;
+					
+				case '<':
+
+					// ROIposx to the left
+					if(ROIposx > 0)
+						ROIposx--;
+					
+					break;
+					
+				case ',':
+
+					// ROIposy down, top left is 0,0
+					if(ROIposy+ROIh < bscandb.rows)
+						ROIposy++;
+					
+					break;
+					
+				case '.':
+
+					// ROIposy up
+					if(ROIposy > 0)
+						ROIposx--;
+					
+					break;
+					
+				case 'M':
+
+					// ROIw increase
+					if(ROIposx+ROIw < bscandb.cols)
+						ROIw++;
+					
+					break;
+					
+				case 'm':
+
+					// ROIw decrease
+					if(ROIw > 1)
+						ROIw--;
+					
+					break;
+					
+				case '?':
+
+					// ROIh increase
+					if(ROIposy+ROIh < bscandb.rows)
+						ROIh++;
+					
+					break;
+					
+				case '/':
+
+					// ROIh decrease
+					if(ROIh > 1)
+						ROIh--;
+					
+					break;
+					
+				case 'Z':
+				case 'z':
+
+					sprintf(filename, "vibrprof%03d", vibrindexi);
+					savematasimage(pathname, dirname, filename, profileimg);
+					savematasdata(outfile, filename, profilearray);
+					vibrindexi++;
 					break;
 					
 

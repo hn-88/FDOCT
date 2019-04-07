@@ -71,8 +71,8 @@ int main()
 				
 			}
 			
-			sprintf(stringvar, "linearized%03d", indexi);
-			sprintf(stringvar2, "BscanFFTxml2mlin%03d.m", indexi);
+		sprintf(stringvar, "linearized%03d", indexi);
+		sprintf(stringvar2, "BscanFFTxml2mlin%03d.m", indexi);
 		
 		if (!fs[stringvar].isNone())
 			{
@@ -86,8 +86,8 @@ int main()
 				
 			}
 			
-			sprintf(stringvar, "bscanman%03d", indexi);
-			sprintf(stringvar2, "BscanFFTxml2mbman%03d.m", indexi);
+		sprintf(stringvar, "bscanman%03d", indexi);
+		sprintf(stringvar2, "BscanFFTxml2mbman%03d.m", indexi);
 		
 		if (!fs[stringvar].isNone())
 			{
@@ -101,8 +101,8 @@ int main()
 				
 			}
 			
-			sprintf(stringvar, "bscansub%03d", indexi);
-			sprintf(stringvar2, "BscanFFTxml2mbsub%03d.m", indexi);
+		sprintf(stringvar, "bscansub%03d", indexi);
+		sprintf(stringvar2, "BscanFFTxml2mbsub%03d.m", indexi);
 		
 		if (!fs[stringvar].isNone())
 			{
@@ -116,14 +116,29 @@ int main()
 				
 			}
 			
-			sprintf(stringvar, "jscan%03d", indexi);
-			sprintf(stringvar2, "BscanFFTxml2mj%03d.m", indexi);
+		sprintf(stringvar, "jscan%03d", indexi);
+		sprintf(stringvar2, "BscanFFTxml2mj%03d.m", indexi);
 		
 		if (!fs[stringvar].isNone())
 			{
 				std::ofstream outfile2(stringvar2);
 				fs[stringvar] >> m;
 				outfile2 << "jscan";
+				//outfile2 << indexi;
+				outfile2 << "=";
+				outfile2 << m;
+				outfile2 << ";" << std::endl;
+				
+			}
+			
+		sprintf(stringvar, "vibrprof%03d", indexi);
+		sprintf(stringvar2, "BscanFFTxml2mvibr%03d.m", indexi);
+		
+		if (!fs[stringvar].isNone())
+			{
+				std::ofstream outfile2(stringvar2);
+				fs[stringvar] >> m;
+				outfile2 << "vibrprof";
 				//outfile2 << indexi;
 				outfile2 << "=";
 				outfile2 << m;
