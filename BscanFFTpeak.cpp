@@ -847,7 +847,7 @@ int main(int argc, char *argv[])
 	unsigned int w, h, bpp = 8, channels, cambitdepth = 16;
 	unsigned int offsetx = 0, offsety = 0;
 	unsigned int indexi, manualindexi, averages = 1, opw, oph;
-	unsigned int vibrindexi;
+	unsigned int vibrindexi=0;
 	uint  indextemp;
 	//uint indextempl;
 	uint ascanat=20;
