@@ -1325,8 +1325,8 @@ int main(int argc, char *argv[])
 						}
 						if (saveinterferograms)
 						{
-							sprintf(filename, "linearized%03d", indexi);
-							savematasdata(outfile, filename, data_ylin);
+							//sprintf(filename, "linearized%03d", indexi);
+							//savematasdata(outfile, filename, data_ylin);
 							normalize(data_ylin, bscantemp2, 0, 255, NORM_MINMAX);	// normalize the log plot for save
 							bscantemp2.convertTo(bscantemp2, CV_8UC1, 1.0);		// imwrite needs 0-255 CV_8U
 							savematasimage(pathname, dirname, filename, bscantemp2);
