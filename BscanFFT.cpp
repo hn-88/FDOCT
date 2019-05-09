@@ -3,7 +3,7 @@
 #include "windows.h"
 // anything before a precompiled header is ignored, 
 // so no endif here! add #endif to compile on __unix__ !
-#endif
+//#endif
 #ifdef _WIN64
 #include <qhyccd.h>
 #endif
@@ -40,13 +40,13 @@
 * ] key increases thresholding in final Bscan
 * [ key decreases thresholding in final Bscan
 * 9 or ( key decreases the index of the reported ascan max value
-* 0 or ) key increases the index of the reported ascan max value 
-* 
+* 0 or ) key increases the index of the reported ascan max value
+*
 * w decreases width of ROI for which avg val is reported, W increases width
 * h decreases the height (position), H increases
 * location of ROI is to the right of the index of reported ascan
 * e toggles rEporting/plotting of ROI average intensity
-* 
+*
 * ESC, x or X key quits
 *
 *
@@ -89,11 +89,11 @@ inline void normalizerows(Mat& src, Mat& dst, double lowerlim, double upperlim)
 {
 	// https://stackoverflow.com/questions/10673715/how-to-normalize-rows-of-an-opencv-mat-without-a-loop
 	// for syntax _OutputArray(B.ptr(i), B.cols))
-	for(uint ii=0; ii<src.rows; ii++)
+	for (uint ii = 0; ii<src.rows; ii++)
 	{
 		normalize(src.row(ii), dst.row(ii), lowerlim, upperlim, NORM_MINMAX);
 	}
-	 
+
 }
 
 inline void printAvgROI(Mat bscandb, uint ascanat, uint vertposROI, uint widthROI, Mat& ROIplot, uint& ROIploti, Mat& statusimg)
@@ -102,9 +102,9 @@ inline void printAvgROI(Mat bscandb, uint ascanat, uint vertposROI, uint widthRO
 	Scalar meanVal;
 	uint heightROI = 3;
 	char textbuffer[80];
-	Mat lastrowofstatusimg=statusimg(Rect(0, 250, 600, 50)); // x,y,width,height
-	
-	if(ascanat+widthROI<bscandb.cols)
+	Mat lastrowofstatusimg = statusimg(Rect(0, 250, 600, 50)); // x,y,width,height
+
+	if (ascanat + widthROI<bscandb.cols)
 	{
 		bscandb(Rect(ascanat, vertposROI, widthROI, heightROI)).copyTo(AvgROI);
 		//imshow("ROI",AvgROI);
@@ -137,10 +137,10 @@ inline void printAvgROI(Mat bscandb, uint ascanat, uint vertposROI, uint widthRO
 			ROIploti = 0;
 	}
 	else
-		sprintf(textbuffer,"ascanat+widthROI > width of image!");
-		lastrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
-		putText(statusimg, textbuffer, Point(0, 280), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-		imshow("Status", statusimg);
+		sprintf(textbuffer, "ascanat+widthROI > width of image!");
+	lastrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+	putText(statusimg, textbuffer, Point(0, 280), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+	imshow("Status", statusimg);
 }
 
 inline void printMinMaxAscan(Mat bscandb, uint ascanat, int numdisplaypoints, Mat& statusimg)
@@ -148,8 +148,8 @@ inline void printMinMaxAscan(Mat bscandb, uint ascanat, int numdisplaypoints, Ma
 	Mat ascan, ascandisp;
 	double minVal, maxVal;
 	char textbuffer[80];
-	Mat thirdrowofstatusimg=statusimg(Rect(0, 150, 600, 50));
-	Mat fourthrowofstatusimg=statusimg(Rect(0, 200, 600, 50));
+	Mat thirdrowofstatusimg = statusimg(Rect(0, 150, 600, 50));
+	Mat fourthrowofstatusimg = statusimg(Rect(0, 200, 600, 50));
 	bscandb.col(ascanat).copyTo(ascan);
 	ascan.row(4).copyTo(ascan.row(1));	// masking out the DC in the display
 	ascan.row(4).copyTo(ascan.row(0));
@@ -160,21 +160,21 @@ inline void printMinMaxAscan(Mat bscandb, uint ascanat, int numdisplaypoints, Ma
 	//normalize(ascan, ascandebug, 0, 1, NORM_MINMAX);
 	//imshow("debug", ascandebug);
 	minMaxLoc(ascandisp, &minVal, &maxVal);
-	sprintf(textbuffer,"Max of Ascan%d = %f dB", ascanat, maxVal);
+	sprintf(textbuffer, "Max of Ascan%d = %f dB", ascanat, maxVal);
 	thirdrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 	putText(statusimg, textbuffer, Point(0, 180), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-	sprintf(textbuffer,"Min of Ascan%d = %f dB", ascanat, minVal);
+	sprintf(textbuffer, "Min of Ascan%d = %f dB", ascanat, minVal);
 	fourthrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 	putText(statusimg, textbuffer, Point(0, 230), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 	imshow("Status", statusimg);
-	
+
 }
-					
+
 inline void makeonlypositive(Mat& src, Mat& dst)
 {
 	// from https://stackoverflow.com/questions/48313249/opencv-convert-all-negative-values-to-zero
-    max(src, 0, dst);
-     
+	max(src, 0, dst);
+
 }
 
 inline Mat zeropadrowwise(Mat sm, int sn)
@@ -182,65 +182,65 @@ inline Mat zeropadrowwise(Mat sm, int sn)
 	// increase fft points sn times 
 	// newnumcols = numcols*sn;
 	// by fft, zero padding, and then inv fft
-	
+
 	// returns CV_64F
-	
+
 	// guided by https://stackoverflow.com/questions/10269456/inverse-fourier-transformation-in-opencv
 	// inspired by Drexler & Fujimoto 2nd ed Section 5.1.10
-	
+
 	// needs fftshift implementation for the zero pad to work correctly if done on borders.
 	// or else adding zeros directly to the higher frequencies. 
-	
+
 	// freqcomplex=fftshift(fft(signal));
 	// zp2=4*ifft(ifftshift(zpfreqcomplex));
-	
+
 	// result of this way of zero padding in the fourier domain is to resample the same min / max range
 	// at a higher sampling rate in the initial domain.
 	// So this improves the k linear interpolation.
-	
+
 	Mat origimage;
 	Mat fouriertransform, fouriertransformzp;
 	Mat inversefouriertransform;
-	
+
 	int numrows = sm.rows;
 	int numcols = sm.cols;
-	int newnumcols = numcols*sn;
-	
+	int newnumcols = numcols * sn;
+
 	sm.convertTo(origimage, CV_32F);
-	
-	dft(origimage, fouriertransform, DFT_SCALE|DFT_COMPLEX_OUTPUT|DFT_ROWS);
-	
+
+	dft(origimage, fouriertransform, DFT_SCALE | DFT_COMPLEX_OUTPUT | DFT_ROWS);
+
 	// implementing fftshift row-wise
 	// like https://docs.opencv.org/2.4/doc/tutorials/core/discrete_fourier_transform/discrete_fourier_transform.html
-	int cx = fouriertransform.cols/2;
-	
+	int cx = fouriertransform.cols / 2;
+
 	// here we assume fouriertransform.cols is even
-	
+
 	Mat LHS(fouriertransform, Rect(0, 0, cx, fouriertransform.rows));   // Create a ROI per half
 	Mat RHS(fouriertransform, Rect(cx, 0, cx, fouriertransform.rows)); //  Rect(topleftx, toplefty, w, h), 
-	// OpenCV typically assumes that the top and left boundary of the rectangle are inclusive, while the right and bottom boundaries are not. 
-	// https://docs.opencv.org/3.2.0/d2/d44/classcv_1_1Rect__.html
-	
+																	   // OpenCV typically assumes that the top and left boundary of the rectangle are inclusive, while the right and bottom boundaries are not. 
+																	   // https://docs.opencv.org/3.2.0/d2/d44/classcv_1_1Rect__.html
+
 	Mat tmp;                           // swap LHS & RHS
-    LHS.copyTo(tmp);
-    RHS.copyTo(LHS);
-    tmp.copyTo(RHS);
-	
-	copyMakeBorder( fouriertransform, fouriertransformzp, 0, 0, floor((newnumcols-numcols)/2), floor((newnumcols-numcols)/2), BORDER_CONSTANT, 0.0 );
-			// this does the zero pad - copyMakeBorder(src, dest, top, bottom, left, right, borderType, value)
-	
+	LHS.copyTo(tmp);
+	RHS.copyTo(LHS);
+	tmp.copyTo(RHS);
+
+	copyMakeBorder(fouriertransform, fouriertransformzp, 0, 0, floor((newnumcols - numcols) / 2), floor((newnumcols - numcols) / 2), BORDER_CONSTANT, 0.0);
+	// this does the zero pad - copyMakeBorder(src, dest, top, bottom, left, right, borderType, value)
+
 	// Now we do the ifftshift before ifft
-	cx = fouriertransformzp.cols/2;
+	cx = fouriertransformzp.cols / 2;
 	Mat LHSzp(fouriertransformzp, Rect(0, 0, cx, fouriertransformzp.rows));   // Create a ROI per half
 	Mat RHSzp(fouriertransformzp, Rect(cx, 0, cx, fouriertransformzp.rows)); //  Rect(topleftx, toplefty, w, h)
-	
+
 	LHSzp.copyTo(tmp);
-    RHSzp.copyTo(LHSzp);
-    tmp.copyTo(RHSzp);
-	
-	dft(fouriertransformzp, inversefouriertransform, DFT_INVERSE|DFT_REAL_OUTPUT|DFT_ROWS);
+	RHSzp.copyTo(LHSzp);
+	tmp.copyTo(RHSzp);
+
+	dft(fouriertransformzp, inversefouriertransform, DFT_INVERSE | DFT_REAL_OUTPUT | DFT_ROWS);
 	inversefouriertransform.convertTo(inversefouriertransform, CV_64F);
-	
+
 	return inversefouriertransform;
 }
 
@@ -249,57 +249,57 @@ inline Mat smoothmovavg(Mat sm, int sn)
 	// smooths each row of Mat m using 2n+1 point weighted moving average
 	// x(p) = ( x(p-n) + x(p-n+1) + .. + 2*x(p) + x(p+1) + ... + x(p+n) ) / 2*(n+1)
 	// The window size is truncated at the edges.
-	
+
 	// can see https://docs.opencv.org/2.4/doc/tutorials/core/how_to_scan_images/how_to_scan_images.html#howtoscanimagesopencv
 	// for efficient ways 
-	
+
 	// accept only double type matrices
 	// sm needs to be CV_64FC1
-    CV_Assert(sm.depth() == CV_64F);
-    
+	CV_Assert(sm.depth() == CV_64F);
+
 	Mat sresult;
 	sm.copyTo(sresult);		// initializing size of result
-	
+
 	int smaxcols = sm.cols;
 	int smaxrows = sm.rows;
-	
+
 	double ssum;
 	int sindexi;
 	double* srcptr;
 	double* destptr;
-	
-	for(int si = 0; si < smaxrows; si++)
+
+	for (int si = 0; si < smaxrows; si++)
 	{
 		srcptr = sm.ptr<double>(si);
 		destptr = sresult.ptr<double>(si);
-		
-		for(int sj = 0; sj < smaxcols; sj++)
+
+		for (int sj = 0; sj < smaxcols; sj++)
 		{
-			ssum=0;
-			
-			for (int sk = -sn; sk < (sn+1); sk++)
+			ssum = 0;
+
+			for (int sk = -sn; sk < (sn + 1); sk++)
 			{
 				// address as m.at<double>(y, x); ie (row,column)
 				sindexi = sj + sk;
-				if ( (sindexi > -1) && (sindexi < smaxcols) )	// truncate window 
+				if ((sindexi > -1) && (sindexi < smaxcols))	// truncate window 
 					ssum = ssum + srcptr[sindexi];		//equivalent to ssum = ssum + sm.at<double>(si,sindexi);
 				else
 					ssum = ssum + srcptr[sj];				// when window is truncated,
 															// weight of original point increases
-				 
+
 			}
-			
+
 			// we want to add m.at<double>(i,j) once again, since its weight is 2
 			ssum = ssum + srcptr[sj];
-			destptr[sj] = ssum / 2 / (sn+1);		//equivalent to sresult.at<double>(si,sj) = ssum / (2 * (sn+1) );
-			
+			destptr[sj] = ssum / 2 / (sn + 1);		//equivalent to sresult.at<double>(si,sj) = ssum / (2 * (sn+1) );
+
 		}
-			 
+
 	}
 
-	return sresult; 
-	 
- 
+	return sresult;
+
+
 
 }
 
@@ -316,7 +316,7 @@ inline void savematasimage(char* p, char* d, char* f, Mat m)
 	strcat(p, ".png");
 	imwrite(p, m);
 #else
-	
+
 	strcpy(p, d);
 	strcat(p, "\\");		// imwrite needs path with \\ separators, not /, on windows
 	strcat(p, f);
@@ -359,7 +359,7 @@ int main(int argc, char *argv[])
 	unsigned int indexi, manualindexi, averages = 1, opw, oph;
 	uint  indextemp;
 	//uint indextempl;
-	uint ascanat=20;
+	uint ascanat = 20;
 	uint averagestoggle = 1;
 
 
@@ -371,8 +371,8 @@ int main(int argc, char *argv[])
 	bool manualaveraging = 0, saveinterferograms = 0;
 	unsigned int manualaverages = 1;
 	int movavgn = 0;
-	bool clampupper=0;
-	bool ROIreport=0;
+	bool clampupper = 0;
+	bool ROIreport = 0;
 
 	bool doneflag = 0, skeypressed = 0, bkeypressed = 0, pkeypressed = 0;
 	bool jlockin = 0, jkeypressed = 0, ckeypressed = 0;
@@ -471,7 +471,7 @@ int main(int argc, char *argv[])
 		infile >> tempstring;
 		infile >> donotnormalize;
 		infile.close();
-		
+
 		lambdamin = atof(lambdaminstr);
 		lambdamax = atof(lambdamaxstr);
 		averagestoggle = averages;
@@ -484,16 +484,16 @@ int main(int argc, char *argv[])
 
 	namedWindow("Bscan", 0); // 0 = WINDOW_NORMAL
 	moveWindow("Bscan", 800, 0);
-	
+
 	namedWindow("Status", 0); // 0 = WINDOW_NORMAL
 	moveWindow("Status", 0, 500);
-	
-	if(ROIreport)
+
+	if (ROIreport)
 	{
 		namedWindow("ROI intensity", 0); // 0 = WINDOW_NORMAL
 		moveWindow("ROI intensity", 800, 500);
 	}
-	
+
 	// debug
 	/*
 	char debugwinname[80];
@@ -513,7 +513,7 @@ int main(int argc, char *argv[])
 
 	namedWindow("debug6", 0); // 0 = WINDOW_NORMAL
 	moveWindow("debug6", 600, 600);
-	
+
 	namedWindow("debug7", 0); // 0 = WINDOW_NORMAL
 	moveWindow("debug7", 700, 600);
 
@@ -526,7 +526,7 @@ int main(int argc, char *argv[])
 	namedWindow("debug0", 0); // 0 = WINDOW_NORMAL
 	moveWindow("debug0", 0, 600);
 	* */
-	
+
 	if (manualaveraging)
 	{
 		namedWindow("Bscanm", 0); // 0 = WINDOW_NORMAL
@@ -542,8 +542,8 @@ int main(int argc, char *argv[])
 	oph = h / binvalue;
 	float lambda0 = (lambdamin + lambdamax) / 2;
 	float lambdabw = lambdamax - lambdamin;
-	
-	unsigned int vertposROI=10, widthROI=10;
+
+	unsigned int vertposROI = 10, widthROI = 10;
 
 	Mat data_y(oph, opw, CV_64F);		// the Mat constructor Mat(rows,columns,type)
 	Mat data_ylin(oph, numfftpoints, CV_64F);
@@ -561,10 +561,10 @@ int main(int argc, char *argv[])
 	baccumcount = 0;
 
 	manualaccumcount = 0;
-	
+
 	Mat bscansave0[100];		// allocate buffer to save frames, max 100
 	Mat bscansave1[100];		// one buffer is active while other is saved on skeypressed
-	
+
 	Mat jscansave;		// to save j frames
 
 	Mat bscanmanualsave0[100];
@@ -575,7 +575,7 @@ int main(int argc, char *argv[])
 	Mat interferogrambsave0[100];
 	Mat interferogrambsave1[100];
 	Mat bscansublog, positivediff;
-	
+
 	bool zeroisactive = 1;
 
 	int nr, nc;
@@ -587,9 +587,9 @@ int main(int argc, char *argv[])
 	Mat ROIplot = Mat::zeros(cv::Size(600, 300), CV_64F);
 	uint ROIploti = 0;
 	Mat statusimg = Mat::zeros(cv::Size(600, 300), CV_64F);
-	Mat firstrowofstatusimg=statusimg(Rect(0, 0, 600, 50)); // x,y,width,height
-	Mat secrowofstatusimg=statusimg(Rect(0, 50, 600, 50));
-	Mat secrowofstatusimgRHS=statusimg(Rect(300, 50, 300, 50));
+	Mat firstrowofstatusimg = statusimg(Rect(0, 0, 600, 50)); // x,y,width,height
+	Mat secrowofstatusimg = statusimg(Rect(0, 50, 600, 50));
+	Mat secrowofstatusimgRHS = statusimg(Rect(300, 50, 300, 50));
 	char textbuffer[80];
 
 	//Mat bscanl, bscantempl, bscantransposedl;
@@ -609,24 +609,24 @@ int main(int argc, char *argv[])
 	//minMaxLoc( m, &minVal, &maxVal, &minLoc, &maxLoc );
 
 	double deltalambda = (lambdamax - lambdamin) / data_y.cols;
-	
-	 
+
+
 	klinear = Mat::zeros(cv::Size(1, numfftpoints), CV_64F);
 	fractionalk = Mat::zeros(cv::Size(1, numfftpoints), CV_64F);
 	nearestkindex = Mat::zeros(cv::Size(1, numfftpoints), CV_32S);
-		
+
 	if (increasefftpointsmultiplier > 1)
 	{
 		lambdas = Mat::zeros(cv::Size(1, increasefftpointsmultiplier*data_y.cols), CV_64F);		//Size(cols,rows)
 		diffk = Mat::zeros(cv::Size(1, increasefftpointsmultiplier*data_y.cols), CV_64F);
-		slopes = Mat::zeros(cv::Size(data_y.rows, increasefftpointsmultiplier*data_y.cols), CV_64F); 
+		slopes = Mat::zeros(cv::Size(data_y.rows, increasefftpointsmultiplier*data_y.cols), CV_64F);
 	}
 	else
 	{
 		lambdas = Mat::zeros(cv::Size(1, data_y.cols), CV_64F);		//Size(cols,rows)
 		diffk = Mat::zeros(cv::Size(1, data_y.cols), CV_64F);
 		slopes = Mat::zeros(cv::Size(data_y.rows, data_y.cols), CV_64F);
-		
+
 	}
 
 	resizeWindow("Bscan", oph, numdisplaypoints);		// (width,height)
@@ -906,14 +906,14 @@ int main(int argc, char *argv[])
 		ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 		if (ret == QHYCCD_SUCCESS)
 		{
-			sprintf(textbuffer,"Exp time = %d ", camtime);
+			sprintf(textbuffer, "Exp time = %d ", camtime);
 			secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 			putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 			imshow("Status", statusimg);
 		}
 		else
 		{
-			sprintf(textbuffer,"CONTROL_EXPOSURE failed");
+			sprintf(textbuffer, "CONTROL_EXPOSURE failed");
 			secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 			putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 			imshow("Status", statusimg);
@@ -950,44 +950,44 @@ int main(int argc, char *argv[])
 					medianBlur(mraw, m, mediann);
 				else
 					mraw.copyTo(m);
-				
+
 				resize(m, opm, Size(), 1.0 / binvalue, 1.0 / binvalue, INTER_AREA);	// binning (averaging)
 				imshow("show", opm);
-				
+
 				if (saveinterferograms)
-						{
-							// save mraw to active buffer
-							// inactive buffer is saved to disk when skeypressed
-							if (zeroisactive)
-							{
-								mraw.copyTo(interferogramsave0[indextemp]);
-								opm.copyTo(interferogrambsave0[indextemp]);
-								//printf("Saved to interferogramsave0[%d]\n",indextemp);
-								//sprintf(debugwinname,"debug%d",baccumcount);
-								//imshow(debugwinname,interferogramsave0[indextemp]);
-								//waitKey(30);
-							}
-							else
-							{
-								mraw.copyTo(interferogramsave1[indextemp]);
-								opm.copyTo(interferogrambsave1[indextemp]);
-								//printf("Saved to interferogramsave1[%d]\n",indextemp);
-								//sprintf(debugwinname,"debug%d",baccumcount);
-								//imshow(debugwinname,interferogramsave1[indextemp]);
-								//waitKey(30);
-							}
-							
-						}
-				
-				
+				{
+					// save mraw to active buffer
+					// inactive buffer is saved to disk when skeypressed
+					if (zeroisactive)
+					{
+						mraw.copyTo(interferogramsave0[indextemp]);
+						opm.copyTo(interferogrambsave0[indextemp]);
+						//printf("Saved to interferogramsave0[%d]\n",indextemp);
+						//sprintf(debugwinname,"debug%d",baccumcount);
+						//imshow(debugwinname,interferogramsave0[indextemp]);
+						//waitKey(30);
+					}
+					else
+					{
+						mraw.copyTo(interferogramsave1[indextemp]);
+						opm.copyTo(interferogrambsave1[indextemp]);
+						//printf("Saved to interferogramsave1[%d]\n",indextemp);
+						//sprintf(debugwinname,"debug%d",baccumcount);
+						//imshow(debugwinname,interferogramsave1[indextemp]);
+						//waitKey(30);
+					}
+
+				}
+
+
 				opm.convertTo(data_y, CV_64F);	// initialize data_y
-				
-				// smoothing by weighted moving average
+
+												// smoothing by weighted moving average
 				if (movavgn > 0)
 					data_y = smoothmovavg(data_y, movavgn);
-				
-				 
-				
+
+
+
 				//transpose(opm, data_y); 		// void transpose(InputArray src, OutputArray dst)
 				// because we actually want the columns and not rows
 				// using DFT_ROWS
@@ -997,75 +997,75 @@ int main(int argc, char *argv[])
 
 				{
 					if (saveinterferograms)
+					{
+						// in this case, formerly active buffer is saved to disk when bkeypressed
+						// since no further 
+						// and all accumulation is done
+						Mat activeMat, activeMatb, activeMat64;
+						for (uint ii = 0; ii<averagestoggle; ii++)
 						{
-							// in this case, formerly active buffer is saved to disk when bkeypressed
-							// since no further 
-							// and all accumulation is done
-							Mat activeMat, activeMatb, activeMat64;
-							for (uint ii = 0; ii<averagestoggle; ii++)
+							if (zeroisactive)
 							{
-								if (zeroisactive)
-								{
-									activeMat  = interferogramsave1[ii];
-									activeMatb = interferogrambsave1[ii];
-								}
-								else
-								{
-									activeMat  = interferogramsave0[ii];
-									activeMatb = interferogrambsave0[ii];
-								}
-									
-								sprintf(filename, "rawframeb%03d-%03d", indexi,ii);
-								savematasimage(pathname, dirname, filename, activeMat);
-								activeMatb.convertTo(activeMat64, CV_64F);
-								accumulate(activeMat64,baccum);
+								activeMat = interferogramsave1[ii];
+								activeMatb = interferogrambsave1[ii];
 							}
+							else
+							{
+								activeMat = interferogramsave0[ii];
+								activeMatb = interferogrambsave0[ii];
+							}
+
+							sprintf(filename, "rawframeb%03d-%03d", indexi, ii);
+							savematasimage(pathname, dirname, filename, activeMat);
+							activeMatb.convertTo(activeMat64, CV_64F);
+							accumulate(activeMat64, baccum);
+						}
+						baccum.copyTo(data_yb);		// saves the "background" or source spectrum
+						if (rowwisenormalize)
+							normalizerows(data_yb, data_yb, 0.0001, 1);
+						if (!donotnormalize)
+							normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
+						else
+							data_yb = data_yb / averagestoggle;
+
+						bkeypressed = 0;
+
+					}
+
+					else
+					{
+						if (baccumcount < averagestoggle)
+						{
+							accumulate(data_y, baccum);
+							// save the raw frame to buffer
+
+							baccumcount++;
+						}
+						else
+						{
 							baccum.copyTo(data_yb);		// saves the "background" or source spectrum
+
 							if (rowwisenormalize)
-								normalizerows(data_yb,data_yb,0.0001, 1);
+								normalizerows(data_yb, data_yb, 0.0001, 1);
 							if (!donotnormalize)
 								normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
 							else
 								data_yb = data_yb / averagestoggle;
-								
 							bkeypressed = 0;
-							
-						}	
-						
-						else 
-						{
-							if (baccumcount < averagestoggle)
-							{
-								accumulate(data_y, baccum);
-								// save the raw frame to buffer
-								
-								baccumcount++;
-							}
-							else
-							{
-								baccum.copyTo(data_yb);		// saves the "background" or source spectrum
-								
-								if (rowwisenormalize)
-									normalizerows(data_yb, data_yb, 0.0001, 1);
-								if (!donotnormalize)
-									normalize(data_yb, data_yb, 0.0001, 1, NORM_MINMAX);
-								else
-									data_yb = data_yb / averagestoggle;
-								bkeypressed = 0;
-								baccumcount = 0;
-								
-							}
-						} // end if not saveinterferograms
-						
-						sprintf(textbuffer,"S(k) saved.");
-						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
-						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-						imshow("Status", statusimg);
-						
-						if (manualaveraging)
-								{
-									averagestoggle = 1;
-								}
+							baccumcount = 0;
+
+						}
+					} // end if not saveinterferograms
+
+					sprintf(textbuffer, "S(k) saved.");
+					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);
+
+					if (manualaveraging)
+					{
+						averagestoggle = 1;
+					}
 
 				}
 
@@ -1075,15 +1075,15 @@ int main(int argc, char *argv[])
 
 					data_y.copyTo(data_yp);		// saves the pi shifted or J0 spectrum	
 					if (saveinterferograms)
-						{
-							// only a single frame to be saved when pkeypressed
-							Mat temp;
-							data_y.convertTo(temp, CV_8UC1); 
-							sprintf(filename, "rawframepbin%03d", indexi);
-							savematasimage(pathname, dirname, filename, temp);
-							sprintf(filename, "rawframep%03d", indexi);
-							savematasimage(pathname, dirname, filename, mraw);
-						}
+					{
+						// only a single frame to be saved when pkeypressed
+						Mat temp;
+						data_y.convertTo(temp, CV_8UC1);
+						sprintf(filename, "rawframepbin%03d", indexi);
+						savematasimage(pathname, dirname, filename, temp);
+						sprintf(filename, "rawframep%03d", indexi);
+						savematasimage(pathname, dirname, filename, mraw);
+					}
 					data_yp.convertTo(data_yp, CV_64F);
 					if (rowwisenormalize)
 						normalizerows(data_yp, data_yp, 0, 1);
@@ -1100,10 +1100,10 @@ int main(int argc, char *argv[])
 					opm.copyTo(opmvector);
 					opmvector.reshape(0, 1);	//make it into a row array
 					minMaxLoc(opmvector, &minVal, &maxVal);
-					sprintf(textbuffer,"fps = %d  Max intensity = %d", fps / 5, int(floor(maxVal)));
+					sprintf(textbuffer, "fps = %d  Max intensity = %d", fps / 5, int(floor(maxVal)));
 					firstrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(0, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-					sprintf(textbuffer,"%03d images acq.", indextemp);
+					sprintf(textbuffer, "%03d images acq.", indextemp);
 					secrowofstatusimgRHS = Mat::zeros(cv::Size(300, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(300, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 					imshow("Status", statusimg);
@@ -1133,10 +1133,10 @@ int main(int argc, char *argv[])
 					Scalar meanval = mean(data_y.row(p));
 					data_y.row(p) = data_y.row(p) - meanval(0);		// Only the first value of the scalar is useful for us
 
-					//windowing
+																	//windowing
 					multiply(data_y.row(p), barthannwin, data_y.row(p));
 				}
-				
+
 				//increasing number of points by zero padding
 				if (increasefftpointsmultiplier > 1)
 					data_y = zeropadrowwise(data_y, increasefftpointsmultiplier);
@@ -1185,7 +1185,7 @@ int main(int argc, char *argv[])
 				magnitude(planes[0], planes[1], magI);
 
 
-				if (indextemp < averagestoggle) 
+				if (indextemp < averagestoggle)
 				{
 					bscantemp = magI.colRange(0, numdisplaypoints);
 					bscantemp.convertTo(bscantemp, CV_64F);
@@ -1194,45 +1194,45 @@ int main(int argc, char *argv[])
 					{
 						// save the individual frames before averaging also
 						if (zeroisactive)
-						bscantemp.copyTo(bscansave0[indextemp]);
+							bscantemp.copyTo(bscansave0[indextemp]);
 						else
-						bscantemp.copyTo(bscansave1[indextemp]);
+							bscantemp.copyTo(bscansave1[indextemp]);
 					}
 
 					indextemp++;
 
 				}
-				
-				if (indextemp >= averagestoggle) 
+
+				if (indextemp >= averagestoggle)
 				{
-					sprintf(textbuffer,"%03d images acq.", indextemp);
+					sprintf(textbuffer, "%03d images acq.", indextemp);
 					secrowofstatusimgRHS = Mat::zeros(cv::Size(300, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(300, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 					imshow("Status", statusimg);
 					indextemp = 0;
 					// we will also toggle the buffers, at the end of this 'else' code block
-					
+
 					transpose(bscantransposed, bscan);
 					bscan = bscan / averagestoggle;
 					bscan += Scalar::all(0.00001);   	// to prevent log of 0  
-					// 20.0 * log(0.1) / 2.303 = -20 dB, which is sufficient 
-					
+														// 20.0 * log(0.1) / 2.303 = -20 dB, which is sufficient 
+
 					if (jlockin)
 					{
 						Mat jdiff = bscan - jscansave;	// these are in linear scale
 						jdiff.copyTo(positivediff);		// just to initialize the Mat
 						makeonlypositive(jdiff, positivediff);
-						positivediff+=0.001;			// to avoid log(0)
-						
+						positivediff += 0.001;			// to avoid log(0)
+
 					}
 
-					
+
 					log(bscan, bscanlog);					// switch to logarithmic scale
 															//convert to dB = 20 log10(value), from the natural log above
 					bscandb = 20.0 * bscanlog / 2.303;
-					
+
 					bscandb.row(4).copyTo(bscandb.row(1));	// masking out the DC in the display
-                    bscandb.row(4).copyTo(bscandb.row(0));
+					bscandb.row(4).copyTo(bscandb.row(0));
 
 					//bscandisp=bscandb.rowRange(0, numdisplaypoints);
 					tempmat = bscandb.rowRange(0, numdisplaypoints);
@@ -1244,26 +1244,26 @@ int main(int argc, char *argv[])
 					{
 						// if this option is selected, set the left upper pixel to 50 dB
 						// before normalizing
-						bscandisp.at<double>(5,5)=50.0;
+						bscandisp.at<double>(5, 5) = 50.0;
 					}
 					normalize(bscandisp, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 					bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
-					
+
 					if (jlockin)
 					{
 						// code to display and save subtracted frame
 						log(positivediff, bscansublog);
 						bscandispmanual = 20.0 * bscansublog / 2.303;
-								
+
 						// apply bscanthresholding
 						bscandispmanual = max(bscandispmanual, bscanthreshold);
 
 						normalize(bscandispmanual, bscandispmanual, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 						bscandispmanual.convertTo(bscandispmanual, CV_8UC1, 255.0);
 						applyColorMap(bscandispmanual, cmagImanual, COLORMAP_JET);
-						
+
 						imshow("Bscan subtracted", cmagImanual);
-						
+
 
 						// and save - similar code as in skeypressed
 						//////////////////////////////////////////
@@ -1273,24 +1273,24 @@ int main(int argc, char *argv[])
 						savematasdata(outfile, filename, manualaccum);
 						savematasimage(pathname, dirname, filename, bscandispmanual);
 						savematasimage(pathname, dirname, filenamec, cmagImanual);
-						
+
 					}
-					 
+
 					applyColorMap(bscandisp, cmagI, COLORMAP_JET);
-					putText(cmagI,"^",Point(ascanat-10, numdisplaypoints), FONT_HERSHEY_COMPLEX, 1,Scalar(255,255,255),3,8);
+					putText(cmagI, "^", Point(ascanat - 10, numdisplaypoints), FONT_HERSHEY_COMPLEX, 1, Scalar(255, 255, 255), 3, 8);
 					//putText(img,"Text",location, fontface, fonstscale,colorbgr,thickness,linetype, bool bottomLeftOrigin=false);
-					
+
 					imshow("Bscan", cmagI);
 					if (ROIreport)
 						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti, statusimg);
-					
+
 					if (jkeypressed == 1)
 					{
 						bscan.copyTo(jscansave);
 						jlockin = 1;			// setting the boolean flag
 						jkeypressed = 0;
 					}
-					
+
 					if (ckeypressed == 1)
 					{
 						// clear the thresholding boolean
@@ -1309,27 +1309,27 @@ int main(int argc, char *argv[])
 						savematasimage(pathname, dirname, filename, bscandisp);
 						sprintf(filenamec, "bscanc%03d", indexi);
 						savematasimage(pathname, dirname, filenamec, cmagI);
-						
-						sprintf(textbuffer,"bscan%03d saved.", indexi);
+
+						sprintf(textbuffer, "bscan%03d saved.", indexi);
 						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 						imshow("Status", statusimg);
-						
+
 						if (jlockin)
 						{
 							// save the respective j image also
 							sprintf(filename, "jscan%03d", indexi);
 							savematasdata(outfile, filename, jscansave);
 							savematasimage(pathname, dirname, filename, jscansave);
-							
+
 						}
 						if (saveinterferograms)
 						{
 							//sprintf(filename, "linearized%03d", indexi);
 							//savematasdata(outfile, filename, data_ylin);
-							normalize(data_ylin, bscantemp2, 0, 255, NORM_MINMAX);	// normalize the log plot for save
-							bscantemp2.convertTo(bscantemp2, CV_8UC1, 1.0);		// imwrite needs 0-255 CV_8U
-							savematasimage(pathname, dirname, filename, bscantemp2);
+							//normalize(data_ylin, bscantemp2, 0, 255, NORM_MINMAX);	// normalize the log plot for save
+							//bscantemp2.convertTo(bscantemp2, CV_8UC1, 1.0);		// imwrite needs 0-255 CV_8U
+							//savematasimage(pathname, dirname, filename, bscantemp2);
 							// in this case, formerly active buffer is saved to disk when bkeypressed
 							// since no further 
 							// and all accumulation is done
@@ -1338,16 +1338,16 @@ int main(int argc, char *argv[])
 							{
 								if (zeroisactive)
 								{
-									activeMat  = interferogramsave1[ii];
+									activeMat = interferogramsave1[ii];
 								}
 								else
 								{
-									activeMat  = interferogramsave0[ii];
+									activeMat = interferogramsave0[ii];
 								}
-									
-								sprintf(filename, "rawframe%03d-%03d", indexi,ii);
+
+								sprintf(filename, "rawframe%03d-%03d", indexi, ii);
 								savematasimage(pathname, dirname, filename, activeMat);
-								
+
 							}
 
 						}
@@ -1369,21 +1369,21 @@ int main(int argc, char *argv[])
 								bscantemp2.convertTo(bscantemp2, CV_8UC1, 255.0);		// imwrite needs 0-255 CV_8U
 								sprintf(filename, "bscan%03d-%03d", indexi, ii);
 								savematasimage(pathname, dirname, filename, bscantemp2);
-								
+
 								if (saveinterferograms)
 								{
 									// inactive buffer is saved to disk when skeypressed
 									// and all accumulation is done
 									for (uint ii = 0; ii<averagestoggle; ii++)
 									{
-										sprintf(filename, "rawframe%03d-%03d", indexi,ii);
+										sprintf(filename, "rawframe%03d-%03d", indexi, ii);
 										if (zeroisactive)
 											savematasimage(pathname, dirname, filename, interferogramsave1[ii]);
 										else
 											savematasimage(pathname, dirname, filename, interferogramsave0[ii]);
 									}
-									
-								}	
+
+								}
 
 
 							}
@@ -1416,16 +1416,16 @@ int main(int argc, char *argv[])
 								log(manualaccum, manualaccum);					// switch to logarithmic scale
 																				//convert to dB = 20 log10(value), from the natural log above
 								bscandispmanual = 20.0 * manualaccum / 2.303;
-								
+
 								// apply bscanthresholding
 								bscandispmanual = max(bscandispmanual, bscanthreshold);
 
 								normalize(bscandispmanual, bscandispmanual, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 								bscandispmanual.convertTo(bscandispmanual, CV_8UC1, 255.0);
 								applyColorMap(bscandispmanual, cmagImanual, COLORMAP_JET);
-								
+
 								imshow("Bscanm", cmagImanual);
-								
+
 
 								// and save - similar code as in skeypressed
 								//////////////////////////////////////////
@@ -1435,7 +1435,7 @@ int main(int argc, char *argv[])
 								savematasdata(outfile, filename, manualaccum);
 								savematasimage(pathname, dirname, filename, bscandispmanual);
 								savematasimage(pathname, dirname, filenamec, cmagImanual);
-								
+
 								manualaccum = Mat::zeros(Size(oph, numdisplaypoints), CV_64F);
 
 
@@ -1449,10 +1449,10 @@ int main(int argc, char *argv[])
 											bscanmanualsave1[ii].copyTo(bscantemp3);		// save only the inactive buffer
 										else
 											bscanmanualsave0[ii].copyTo(bscantemp3);
-											
+
 										bscantemp3.convertTo(bscantemp3, CV_64F);
 										bscantemp3 += Scalar::all(0.000001);   	// to prevent log of 0       
-										          
+
 										log(bscantemp3, bscantemp3);					// switch to logarithmic scale
 																						//convert to dB = 20 log10(value), from the natural log above
 										bscantemp3 = 20.0 * bscantemp3 / 2.303;
@@ -1475,105 +1475,105 @@ int main(int argc, char *argv[])
 					} // end if skeypressed
 
 					bscantransposed = Mat::zeros(Size(numdisplaypoints, oph), CV_64F);
-					
+
 					// toggle the buffers
 					if (zeroisactive)
-						zeroisactive=0;
+						zeroisactive = 0;
 					else
-						zeroisactive=1;
-						
+						zeroisactive = 1;
+
 				} // end else (if indextemp < averages)
 
-				//////////////////////////////////////////////////////
-				// a bscan without linearization, sanity check.
-				//////////////////////////////////
-				//nr = getOptimalDFTSize( data_y.rows );	//128 when taking transpose(opm, data_y);
-				//nc = getOptimalDFTSize( data_y.cols );	//96
-				////nc = nc * 4;		// 4x oversampling
+				  //////////////////////////////////////////////////////
+				  // a bscan without linearization, sanity check.
+				  //////////////////////////////////
+				  //nr = getOptimalDFTSize( data_y.rows );	//128 when taking transpose(opm, data_y);
+				  //nc = getOptimalDFTSize( data_y.cols );	//96
+				  ////nc = nc * 4;		// 4x oversampling
 
 
-				//copyMakeBorder(data_y, padded, 0, nr - data_y.rows, 0, nc - data_y.cols, BORDER_CONSTANT, Scalar::all(0));
+				  //copyMakeBorder(data_y, padded, 0, nr - data_y.rows, 0, nc - data_y.cols, BORDER_CONSTANT, Scalar::all(0));
 
-				//Mat planesl[] = {Mat_<float>(padded), Mat::zeros(padded.size(), CV_32F)};
-				//Mat complexIl;
-				//merge(planesl, 2, complexIl);         // Add to the expanded another plane with zeros
+				  //Mat planesl[] = {Mat_<float>(padded), Mat::zeros(padded.size(), CV_32F)};
+				  //Mat complexIl;
+				  //merge(planesl, 2, complexIl);         // Add to the expanded another plane with zeros
 
-				//dft(complexIl, complexIl, DFT_ROWS|DFT_INVERSE);            // this way the result may fit in the source matrix
+				  //dft(complexIl, complexIl, DFT_ROWS|DFT_INVERSE);            // this way the result may fit in the source matrix
 
-				//// compute the magnitude and switch to logarithmic scale
-				//// => log(1 + sqrt(Re(DFT(I))^2 + Im(DFT(I))^2))
-				//split(complexIl, planesl);                   // planes[0] = Re(DFT(I), planes[1] = Im(DFT(I))
-				//magnitude(planesl[0], planesl[1], magIl);
-
-
-
-				//if(indextempl < averages)
-				//{
-				//bscantempl = magIl.colRange(0,nc/2);
-				//bscantempl.convertTo(bscantempl,CV_64F);
-				//accumulate(bscantempl, bscantransposedl);
-				//indextempl++;
-				//}
-				//else
-				//{
-				//indextempl = 0;
-				//transpose(bscantransposedl, bscanl); 
-				//// remove dc
-				//bscanl.row(0).setTo(Scalar(0));
-
-				//normalize(bscanl, bscanl, 0, 1, NORM_MINMAX);
-				//bscanl += Scalar::all(1);                    // switch to logarithmic scale
-				//log(bscanl, bscanl);
-				//normalize(bscanl, bscanl, 0, 1, NORM_MINMAX);	// normalize the log plot for display
-
-				//bscanl.convertTo(bscanl, CV_8UC1, 255.0);
-				//applyColorMap(bscanl, cmagIl, COLORMAP_JET);
-
-				//imshow( "Bscanl", cmagIl );
-
-				//if (skeypressed==1)	
-
-				//{
-
-				////indexi++;
-				//// this was already done in the earlier code
-				//sprintf(filename, "bscanlam%03d.png",indexi);
-				//sprintf(filenamec, "bscanlamc%03d.png",indexi);
-				////normalize(bscan, bscan, 0, 255, NORM_MINMAX);
-
-				//#ifdef __unix__
-				//strcpy(pathname,dirname);
-				//strcat(pathname,"/");
-				//strcat(pathname,filename);
-				//imwrite(pathname, bscanl);
-
-				//strcpy(pathname,dirname);
-				//strcat(pathname,"/");
-				//strcat(pathname,filenamec);
-				//imwrite(pathname, cmagIl);
-
-				//sprintf(filename, "bscanlam%03d",indexi);
-				//outfile<< filename << "=";
-				//outfile<<bscanl;
-				//outfile<<";"<<std::endl;
-
-				//#else
-				//imwrite(filename, bscanl);
-				//imwrite(filenamec, cmagIl);
-				//outfile << "bscanl" << bscanl;
-				//#endif		 	
-				//skeypressed=0; 	 
-
-				//}
-
-
-				//bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
-				//}
+				  //// compute the magnitude and switch to logarithmic scale
+				  //// => log(1 + sqrt(Re(DFT(I))^2 + Im(DFT(I))^2))
+				  //split(complexIl, planesl);                   // planes[0] = Re(DFT(I), planes[1] = Im(DFT(I))
+				  //magnitude(planesl[0], planesl[1], magIl);
 
 
 
+				  //if(indextempl < averages)
+				  //{
+				  //bscantempl = magIl.colRange(0,nc/2);
+				  //bscantempl.convertTo(bscantempl,CV_64F);
+				  //accumulate(bscantempl, bscantransposedl);
+				  //indextempl++;
+				  //}
+				  //else
+				  //{
+				  //indextempl = 0;
+				  //transpose(bscantransposedl, bscanl); 
+				  //// remove dc
+				  //bscanl.row(0).setTo(Scalar(0));
 
-				////////////////////////////////////////////
+				  //normalize(bscanl, bscanl, 0, 1, NORM_MINMAX);
+				  //bscanl += Scalar::all(1);                    // switch to logarithmic scale
+				  //log(bscanl, bscanl);
+				  //normalize(bscanl, bscanl, 0, 1, NORM_MINMAX);	// normalize the log plot for display
+
+				  //bscanl.convertTo(bscanl, CV_8UC1, 255.0);
+				  //applyColorMap(bscanl, cmagIl, COLORMAP_JET);
+
+				  //imshow( "Bscanl", cmagIl );
+
+				  //if (skeypressed==1)	
+
+				  //{
+
+				  ////indexi++;
+				  //// this was already done in the earlier code
+				  //sprintf(filename, "bscanlam%03d.png",indexi);
+				  //sprintf(filenamec, "bscanlamc%03d.png",indexi);
+				  ////normalize(bscan, bscan, 0, 255, NORM_MINMAX);
+
+				  //#ifdef __unix__
+				  //strcpy(pathname,dirname);
+				  //strcat(pathname,"/");
+				  //strcat(pathname,filename);
+				  //imwrite(pathname, bscanl);
+
+				  //strcpy(pathname,dirname);
+				  //strcat(pathname,"/");
+				  //strcat(pathname,filenamec);
+				  //imwrite(pathname, cmagIl);
+
+				  //sprintf(filename, "bscanlam%03d",indexi);
+				  //outfile<< filename << "=";
+				  //outfile<<bscanl;
+				  //outfile<<";"<<std::endl;
+
+				  //#else
+				  //imwrite(filename, bscanl);
+				  //imwrite(filenamec, cmagIl);
+				  //outfile << "bscanl" << bscanl;
+				  //#endif		 	
+				  //skeypressed=0; 	 
+
+				  //}
+
+
+				  //bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
+				  //}
+
+
+
+
+				  ////////////////////////////////////////////
 
 
 				key = waitKey(3); // wait 30 milliseconds for keypress
@@ -1595,15 +1595,15 @@ int main(int argc, char *argv[])
 					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 					if (ret == QHYCCD_SUCCESS)
 					{
-						sprintf(textbuffer,"Exp time = %d ", camtime);
+						sprintf(textbuffer, "Exp time = %d ", camtime);
 						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 						imshow("Status", statusimg);
-						
+
 					}
 					else
 					{
-						sprintf(textbuffer,"CONTROL_EXPOSURE failed");
+						sprintf(textbuffer, "CONTROL_EXPOSURE failed");
 						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 						imshow("Status", statusimg);
@@ -1616,18 +1616,18 @@ int main(int argc, char *argv[])
 
 					camtime = camtime - 100;
 					if (camtime < 0)
-						camtime=0;
+						camtime = 0;
 					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 					if (ret == QHYCCD_SUCCESS)
 					{
-						sprintf(textbuffer,"Exp time = %d ", camtime);
+						sprintf(textbuffer, "Exp time = %d ", camtime);
 						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 						imshow("Status", statusimg);
 					}
 					else
 					{
-						sprintf(textbuffer,"CONTROL_EXPOSURE failed");
+						sprintf(textbuffer, "CONTROL_EXPOSURE failed");
 						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 						imshow("Status", statusimg);
@@ -1641,14 +1641,14 @@ int main(int argc, char *argv[])
 					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 					if (ret == QHYCCD_SUCCESS)
 					{
-						sprintf(textbuffer,"Exp time = %d ", camtime);
+						sprintf(textbuffer, "Exp time = %d ", camtime);
 						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 						imshow("Status", statusimg);
 					}
 					else
 					{
-						sprintf(textbuffer,"CONTROL_EXPOSURE failed");
+						sprintf(textbuffer, "CONTROL_EXPOSURE failed");
 						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 						imshow("Status", statusimg);
@@ -1659,18 +1659,18 @@ int main(int argc, char *argv[])
 
 					camtime = camtime - 10000;
 					if (camtime < 0)
-						camtime=0;
+						camtime = 0;
 					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 					if (ret == QHYCCD_SUCCESS)
 					{
-						sprintf(textbuffer,"Exp time = %d ", camtime);
+						sprintf(textbuffer, "Exp time = %d ", camtime);
 						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 						imshow("Status", statusimg);
 					}
 					else
 					{
-						sprintf(textbuffer,"CONTROL_EXPOSURE failed");
+						sprintf(textbuffer, "CONTROL_EXPOSURE failed");
 						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 						imshow("Status", statusimg);
@@ -1683,14 +1683,14 @@ int main(int argc, char *argv[])
 					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 					if (ret == QHYCCD_SUCCESS)
 					{
-						sprintf(textbuffer,"Exp time = %d ", camtime);
+						sprintf(textbuffer, "Exp time = %d ", camtime);
 						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 						imshow("Status", statusimg);
 					}
 					else
 					{
-						sprintf(textbuffer,"CONTROL_EXPOSURE failed");
+						sprintf(textbuffer, "CONTROL_EXPOSURE failed");
 						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 						imshow("Status", statusimg);
@@ -1701,18 +1701,18 @@ int main(int argc, char *argv[])
 
 					camtime = camtime - 1000;
 					if (camtime < 0)
-						camtime=0;
+						camtime = 0;
 					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
 					if (ret == QHYCCD_SUCCESS)
 					{
-						sprintf(textbuffer,"Exp time = %d ", camtime);
+						sprintf(textbuffer, "Exp time = %d ", camtime);
 						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 						imshow("Status", statusimg);
 					}
 					else
 					{
-						sprintf(textbuffer,"CONTROL_EXPOSURE failed");
+						sprintf(textbuffer, "CONTROL_EXPOSURE failed");
 						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 						imshow("Status", statusimg);
@@ -1737,66 +1737,66 @@ int main(int argc, char *argv[])
 
 					pkeypressed = 1;
 					break;
-					
+
 				case 'j':
 				case 'J':
 
 					jkeypressed = 1;
 					break;
-					
+
 				case 'c':
 				case 'C':
 
 					ckeypressed = 1;
 					break;
-					
+
 				case ']':
 
 					bscanthreshold += 1.0;
-					sprintf(textbuffer,"bscanthreshold = %f",bscanthreshold);
+					sprintf(textbuffer, "bscanthreshold = %f", bscanthreshold);
 					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 					imshow("Status", statusimg);
 					break;
-					
+
 				case '[':
 
 					bscanthreshold -= 1.0;
-					sprintf(textbuffer,"bscanthreshold = %f",bscanthreshold);
+					sprintf(textbuffer, "bscanthreshold = %f", bscanthreshold);
 					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 					imshow("Status", statusimg);
 					break;
-					
+
 				case '(':
 					if (ascanat > 10)
 						ascanat -= 10;
-					
-					sprintf(textbuffer,"ascanat = %d",ascanat);
+
+					sprintf(textbuffer, "ascanat = %d", ascanat);
 					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 					imshow("Status", statusimg);
 					if (ROIreport)
 						printMinMaxAscan(bscandb, ascanat, numdisplaypoints, statusimg);
 					break;
-					
+
 				case '9':
 					if (ascanat > 0)
 						ascanat -= 1;
-					
-					sprintf(textbuffer,"ascanat = %d",ascanat);
+
+					sprintf(textbuffer, "ascanat = %d", ascanat);
 					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 					imshow("Status", statusimg);
 					if (ROIreport)
 						printMinMaxAscan(bscandb, ascanat, numdisplaypoints, statusimg);
 					break;
-					
+
 				case ')':
-					if (ascanat < (oph-11))
+					if (ascanat < (oph - 11))
 						ascanat += 10;
-					
-					sprintf(textbuffer,"ascanat = %d",ascanat);
+
+					sprintf(textbuffer, "ascanat = %d", ascanat);
 					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 					imshow("Status", statusimg);
@@ -1804,58 +1804,58 @@ int main(int argc, char *argv[])
 						printMinMaxAscan(bscandb, ascanat, numdisplaypoints, statusimg);
 					break;
 				case '0':
-					if (ascanat < (oph-1))
+					if (ascanat < (oph - 1))
 						ascanat += 1;
-					
-					sprintf(textbuffer,"ascanat = %d",ascanat);
+
+					sprintf(textbuffer, "ascanat = %d", ascanat);
 					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 					imshow("Status", statusimg);
 					if (ROIreport)
 						printMinMaxAscan(bscandb, ascanat, numdisplaypoints, statusimg);
 					break;
-					
+
 				case 'W':
-					if ((ascanat + widthROI) < (oph-1))
+					if ((ascanat + widthROI) < (oph - 1))
 						widthROI += 1;
-					
-					sprintf(textbuffer,"ROI width = %d",widthROI);
+
+					sprintf(textbuffer, "ROI width = %d", widthROI);
 					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 					imshow("Status", statusimg);
 					if (ROIreport)
 						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti, statusimg);
 					break;
-					
+
 				case 'w':
 					if (widthROI > 2)
 						widthROI -= 1;
-					
-					sprintf(textbuffer, "ROI width = %d",widthROI);
+
+					sprintf(textbuffer, "ROI width = %d", widthROI);
 					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 					imshow("Status", statusimg);
 					if (ROIreport)
 						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti, statusimg);
 					break;
-					
+
 				case 'h':
-					if (vertposROI < (numdisplaypoints-1))
+					if (vertposROI < (numdisplaypoints - 1))
 						vertposROI += 1;
-					
-					sprintf(textbuffer, "ROI vpos = %d ",vertposROI);
+
+					sprintf(textbuffer, "ROI vertical position = %d ", vertposROI);
 					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 					imshow("Status", statusimg);
 					if (ROIreport)
 						printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti, statusimg);
 					break;
-					
+
 				case 'H':
 					if (vertposROI > 2)
 						vertposROI -= 1;
-					
-					sprintf(textbuffer, "ROI vpos = %d",vertposROI);
+
+					sprintf(textbuffer, "ROI vertical position = %d", vertposROI);
 					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 					imshow("Status", statusimg);
@@ -1865,41 +1865,41 @@ int main(int argc, char *argv[])
 
 				case 'a':
 				case 'A':
-					if (averagestoggle==1)
+					if (averagestoggle == 1)
 						averagestoggle = averages;
 					else
-						averagestoggle=1;
-					sprintf(textbuffer, "Now averaging %d bscans.",averagestoggle);
+						averagestoggle = 1;
+					sprintf(textbuffer, "Now averaging %d bscans.", averagestoggle);
 					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-					imshow("Status", statusimg);	
+					imshow("Status", statusimg);
 					break;
-					
+
 				case 'e':
 				case 'E':
-					if (ROIreport==1)
+					if (ROIreport == 1)
 					{
 						ROIreport = 0;
-						sprintf(textbuffer,"Supressing rEporting/plotting ROI averages.");
+						sprintf(textbuffer, "Supressing rEporting/plotting ROI averages.");
 						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 						imshow("Status", statusimg);
 					}
 					else
 					{
-						ROIreport=1;
-						sprintf(textbuffer,"Now rEporting/plotting ROI averages.");
+						ROIreport = 1;
+						sprintf(textbuffer, "Now rEporting/plotting ROI averages.");
 						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 						imshow("Status", statusimg);
 						//printAvgROI(bscandb, ascanat, vertposROI, widthROI, ROIplot, ROIploti, statusimg);
 						//moveWindow("ROI intensity", 800, 400);
-					}	
+					}
 					break;
-					
+
 				case 'q':
 				case 'Q':
-					if (clampupper==1)
+					if (clampupper == 1)
 						clampupper = 0;
 					else
 						clampupper = 1;
