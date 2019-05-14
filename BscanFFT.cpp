@@ -3,7 +3,7 @@
 #include "windows.h"
 // anything before a precompiled header is ignored, 
 // so no endif here! add #endif to compile on __unix__ !
-//#endif
+#endif
 #ifdef _WIN64
 #include <qhyccd.h>
 #endif
@@ -431,6 +431,10 @@ int main(int argc, char *argv[])
 		infile >> tempstring;
 		infile >> h;
 		infile >> tempstring;
+		infile >> offsetx;
+		infile >> tempstring;
+		infile >> offsety;
+		infile >> tempstring;
 		infile >> camspeed;
 		infile >> tempstring;
 		infile >> cambinx;
@@ -801,7 +805,7 @@ int main(int argc, char *argv[])
 		}
 
 
-		ret = SetQHYCCDResolution(camhandle, 0, 0, w, h); //handle, xpos,ypos,xwidth,ywidth
+		ret = SetQHYCCDResolution(camhandle, offsetx, offsety, w, h); //handle, xpos,ypos,xwidth,ywidth
 		if (ret == QHYCCD_SUCCESS)
 		{
 			printf("Resolution set - width = %d height = %d\n", w, h);
