@@ -21,7 +21,7 @@
 *
 * Captures (background) spectrum on receipt of b key
 * Captures pi shifted or J0 frame on receipt of p key
-* Saves frames on receipt of s key
+* Saves frames on receipt of s key or spacebar
 * Saves J0 null frame for subtraction on receipt of j key
 * Clears the J0 thresholding mask on c key
 *
@@ -1726,6 +1726,7 @@ int main(int argc, char *argv[])
 
 				case 's':
 				case 'S':
+				case ' ':
 
 					skeypressed = 1;
 					break;
