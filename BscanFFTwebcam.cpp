@@ -416,13 +416,13 @@ int main(int argc, char *argv[])
 	int  fps, key;
 	int t_start, t_end;
 
-	//std::ifstream infile("BscanFFT.ini");
-	// if creating an AppImage, uncomment the above, 
+	std::ifstream infile("BscanFFT.ini");
+	// if creating an AppImage, comment the above, 
 	// and use the lines below instead.
-	char* pPath;
-    pPath = getenv("OWD");		// Original Working Directory environment variable
-    strcat(pPath, "/BscanFFT.ini");
-	std::ifstream infile(pPath);
+	//char* pPath;
+        //pPath = getenv("OWD");		// Original Working Directory environment variable
+        //strcat(pPath, "/BscanFFT.ini");
+	//std::ifstream infile(pPath);
 	/////////////////////////////////
 	
 	std::string tempstring;
