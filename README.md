@@ -39,6 +39,10 @@ File list:
 	
 	CMakeLists.txt.webcam   - rename this as CMakeLists.txt if building without qhy, supporting only a webcam
 	
+	ViewportSaver.cpp     - a simple interface to display save viewport images, and save on receipt of s or <spacebar>.
+	
+	ViewportSaverwebcam.cpp  - as above, written to use a webcam driver instead of QHY driver.
+	
 	multicamtest.cpp     - an attempt to use multiple QHY cameras at once - does not work.
   
   
