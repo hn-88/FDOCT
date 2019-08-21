@@ -10,7 +10,8 @@
 
 
 /*
-* modified from BscanFFT.cpp
+* modified from BscanFFTspin.cpp
+* with single frame acq instead of continuous
 * for FLIR Point Grey camera
 * instead of QHY camera
 *
@@ -52,7 +53,7 @@
 *
 *
 * Hari Nandakumar
-* 20 Aug 2019  *
+* 21 Aug 2019  *
 *
 *
 */
@@ -1039,23 +1040,23 @@ int main(int argc, char *argv[])
 			CEnumerationPtr ptrAcquisitionMode = nodeMap.GetNode("AcquisitionMode");
 			if (!IsAvailable(ptrAcquisitionMode) || !IsWritable(ptrAcquisitionMode))
 			{
-				cout << "Unable to set continuous acquisition mode as ptr is not writable ..." << endl << endl;
+				cout << "Unable to set acquisition mode as ptr is not writable ..." << endl << endl;
 				return -1;
 			}
 
 			// Retrieve entry node from enumeration node
-			CEnumEntryPtr ptrAcquisitionModeContinuous = ptrAcquisitionMode->GetEntryByName("Continuous");
-			if (!IsAvailable(ptrAcquisitionModeContinuous) || !IsReadable(ptrAcquisitionModeContinuous))
+			CEnumEntryPtr ptrAcquisitionModeSingleFrame = ptrAcquisitionMode->GetEntryByName("SingleFrame");
+			if (!IsAvailable(ptrAcquisitionModeSingleFrame) || !IsReadable(ptrAcquisitionModeSingleFrame))
 			{
-				cout << "Unable to set continuous acquisition mode as entry is not readable..." << endl << endl;
+				cout << "Unable to set single frame acquisition mode as entry is not readable..." << endl << endl;
 				return -1;
 			}
 
 			// Retrieve integer value from entry node
-			const int64_t acquisitionModeContinuous = ptrAcquisitionModeContinuous->GetValue();
+			const int64_t acquisitionModeSingleFrame = ptrAcquisitionModeSingleFrame->GetValue();
 
 			// Set integer value from entry node as new value of enumeration node
-			ptrAcquisitionMode->SetIntValue(acquisitionModeContinuous);
+			ptrAcquisitionMode->SetIntValue(acquisitionModeSingleFrame);
 
 			
 
@@ -1089,7 +1090,10 @@ int main(int argc, char *argv[])
 			}
 			// pResultImage has to be released to avoid buffer filling up
 			pResultImage->Release();
+			// trying begin and end acq, to see if it will improve fps
+			//cout << "Acquisition mode set to continuous..." << endl;
 			pCam->EndAcquisition();
+			//////////////////
 
 			
 
@@ -1729,7 +1733,7 @@ int main(int argc, char *argv[])
 				  ////////////////////////////////////////////
 
 
-				key = waitKey(3); // wait 30 milliseconds for keypress
+				key = waitKey(30); // wait 30 milliseconds for keypress
 								  // max frame rate at 1280x960 is 30 fps => 33 milliseconds
 
 				switch (key)
@@ -2073,8 +2077,7 @@ int main(int argc, char *argv[])
 			}  // if ret success end
 		} // inner while loop end
 		
-		//pResultImage->Release();
-		
+		//pCam->EndAcquisition();
 		pCam->DeInit();
 		
 		// Clear camera list before releasing system
@@ -2082,6 +2085,9 @@ int main(int argc, char *argv[])
 
         // Release system
         system->ReleaseInstance();
+        
+        cout << endl << "Done! Press Enter to exit..." << endl;
+		getchar();
 		
 
 	} // end of try
