@@ -1056,12 +1056,12 @@ int main(int argc, char *argv[])
 
 			// Set integer value from entry node as new value of enumeration node
 			ptrAcquisitionMode->SetIntValue(acquisitionModeContinuous);
-
-			
-
-			
-			
-
+			ImagePtr pResultImage;
+			ImagePtr convertedImage;
+			// trying begin and end acq, to see if it will improve fps
+			// this needs StreamBufferHandlingMode -> NewestOnly
+			pCam->BeginAcquisition();
+			//////////////////
 
 		while (1)		//camera frames acquisition loop, which is inside the try
 		{
@@ -1069,30 +1069,26 @@ int main(int argc, char *argv[])
 			
 			ret = 0;
 			
-			// trying begin and end acq, to see if it will improve fps
-			//cout << "Acquisition mode set to continuous..." << endl;
-			pCam->BeginAcquisition();
-			//////////////////
-			ImagePtr pResultImage = pCam->GetNextImage();
-			ImagePtr convertedImage;
+			while(ret==0)
+			{
+				pResultImage = pCam->GetNextImage();
+				
+				if(pResultImage->IsIncomplete())
+				{
+					ret=0;
+				}
+				else
+				{
+					ret=1;
+					// assuming Mono8 1280 x 960 for now
+					convertedImage = pResultImage;
+					mraw = cv::Mat(960, 1280, CV_8UC1, convertedImage->GetData(), convertedImage->GetStride());
+				}
+			} // end of while IsIncomplete
 			
-			if(pResultImage->IsIncomplete())
-			{
-				ret=0;
-			}
-			else
-			{
-				ret=1;
-				// assuming Mono8 1280 x 960 for now
-				convertedImage = pResultImage;
-				mraw = cv::Mat(960, 1280, CV_8UC1, convertedImage->GetData(), convertedImage->GetStride());
-			}
 			// pResultImage has to be released to avoid buffer filling up
 			pResultImage->Release();
-			pCam->EndAcquisition();
-
 			
-
 			if (ret == 1)
 			{
 				
@@ -2073,9 +2069,9 @@ int main(int argc, char *argv[])
 			}  // if ret success end
 		} // inner while loop end
 		
-		//pResultImage->Release();
-		
+		pCam->EndAcquisition();
 		pCam->DeInit();
+		pCam = nullptr;
 		
 		// Clear camera list before releasing system
         camList.Clear();
