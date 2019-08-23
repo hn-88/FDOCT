@@ -25,6 +25,8 @@ File list:
 	
 	BscanFFTsim.cpp      - simulation using saved files, for testing and validation
 	
+	BscanFFTspin.cpp      - the main software, with spinnaker SDK (Point Grey camera, flir.com) support
+	
 	BscanFFTwebcam.cpp   - webcam demo version of the main software, which does not need a QHYCCD camera
 	
 	BscanFFTxml2m.cpp    - helper to convert output xml files to Matlab compatible m files
@@ -38,6 +40,12 @@ File list:
 	CMakeLists.txt.qhy   - rename this as CMakeLists.txt if building with qhy support
 	
 	CMakeLists.txt.webcam   - rename this as CMakeLists.txt if building without qhy, supporting only a webcam
+	
+	CMakeLists.txt.spinnakermultithreaded   - rename this as CMakeLists.txt if building for spinnaker SDK - flir.com
+	
+	Displayspin.cpp   - demo to see frame rate with spinnaker SDK
+	
+	Displayspinmt.cpp   - demo to see frame rate with spinnaker SDK, old multithreaded trial not optimized
 	
 	ViewportSaver.cpp     - a simple interface to display save viewport images, and save on receipt of s or <spacebar>.
 	
