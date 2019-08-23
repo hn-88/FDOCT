@@ -68,4 +68,6 @@ http://hnsws.blogspot.com/2018/03/qhy-sdk-windows-and-linux.html
 
 http://hnsws.blogspot.com/2018/03/windows-executable-slower.html
 
-
+Documentation for integrating Spinnaker SDK is at 
+http://hnsws.blogspot.com/2019/08/implementing-opencv-project-with.html 
+and http://hnsws.blogspot.com/2019/08/visual-studio-specifics-of-opencv.html
