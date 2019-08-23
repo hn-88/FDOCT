@@ -1065,6 +1065,7 @@ int main(int argc, char *argv[])
 					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 					imshow("Status", statusimg);
+					resizeWindow("Status", 600, 300);
 
 					if (manualaveraging)
 					{
