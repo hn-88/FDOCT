@@ -513,39 +513,6 @@ int main(int argc, char *argv[])
 		moveWindow("ROI intensity", 800, 500);
 	}
 
-	// debug
-	/*
-	char debugwinname[80];
-	namedWindow("debug1", 0); // 0 = WINDOW_NORMAL
-	moveWindow("debug1", 100, 600);
-	namedWindow("debug2", 0); // 0 = WINDOW_NORMAL
-	moveWindow("debug2", 200, 600);
-
-	namedWindow("debug3", 0); // 0 = WINDOW_NORMAL
-	moveWindow("debug3", 300, 600);
-
-	namedWindow("debug4", 0); // 0 = WINDOW_NORMAL
-	moveWindow("debug4", 400, 600);
-
-	namedWindow("debug5", 0); // 0 = WINDOW_NORMAL
-	moveWindow("debug5", 500, 600);
-
-	namedWindow("debug6", 0); // 0 = WINDOW_NORMAL
-	moveWindow("debug6", 600, 600);
-
-	namedWindow("debug7", 0); // 0 = WINDOW_NORMAL
-	moveWindow("debug7", 700, 600);
-
-	namedWindow("debug8", 0); // 0 = WINDOW_NORMAL
-	moveWindow("debug8", 800, 600);
-
-	namedWindow("debug9", 0); // 0 = WINDOW_NORMAL
-	moveWindow("debug9", 900, 600);
-
-	namedWindow("debug0", 0); // 0 = WINDOW_NORMAL
-	moveWindow("debug0", 0, 600);
-	* */
-
 	if (manualaveraging)
 	{
 		namedWindow("Bscanm", 0); // 0 = WINDOW_NORMAL
@@ -747,7 +714,7 @@ int main(int argc, char *argv[])
 	num = camList.GetSize();
 	int result;
 	/*
-	if (ret != QHYCCD_SUCCESS)
+	if (ret != 1)
 	{
 		printf("Init SDK not successful!\n");
 	}
@@ -1654,100 +1621,14 @@ int main(int argc, char *argv[])
 
 				} // end else (if indextemp < averages)
 
-				  //////////////////////////////////////////////////////
-				  // a bscan without linearization, sanity check.
-				  //////////////////////////////////
-				  //nr = getOptimalDFTSize( data_y.rows );	//128 when taking transpose(opm, data_y);
-				  //nc = getOptimalDFTSize( data_y.cols );	//96
-				  ////nc = nc * 4;		// 4x oversampling
-
-
-				  //copyMakeBorder(data_y, padded, 0, nr - data_y.rows, 0, nc - data_y.cols, BORDER_CONSTANT, Scalar::all(0));
-
-				  //Mat planesl[] = {Mat_<float>(padded), Mat::zeros(padded.size(), CV_32F)};
-				  //Mat complexIl;
-				  //merge(planesl, 2, complexIl);         // Add to the expanded another plane with zeros
-
-				  //dft(complexIl, complexIl, DFT_ROWS|DFT_INVERSE);            // this way the result may fit in the source matrix
-
-				  //// compute the magnitude and switch to logarithmic scale
-				  //// => log(1 + sqrt(Re(DFT(I))^2 + Im(DFT(I))^2))
-				  //split(complexIl, planesl);                   // planes[0] = Re(DFT(I), planes[1] = Im(DFT(I))
-				  //magnitude(planesl[0], planesl[1], magIl);
-
-
-
-				  //if(indextempl < averages)
-				  //{
-				  //bscantempl = magIl.colRange(0,nc/2);
-				  //bscantempl.convertTo(bscantempl,CV_64F);
-				  //accumulate(bscantempl, bscantransposedl);
-				  //indextempl++;
-				  //}
-				  //else
-				  //{
-				  //indextempl = 0;
-				  //transpose(bscantransposedl, bscanl); 
-				  //// remove dc
-				  //bscanl.row(0).setTo(Scalar(0));
-
-				  //normalize(bscanl, bscanl, 0, 1, NORM_MINMAX);
-				  //bscanl += Scalar::all(1);                    // switch to logarithmic scale
-				  //log(bscanl, bscanl);
-				  //normalize(bscanl, bscanl, 0, 1, NORM_MINMAX);	// normalize the log plot for display
-
-				  //bscanl.convertTo(bscanl, CV_8UC1, 255.0);
-				  //applyColorMap(bscanl, cmagIl, COLORMAP_JET);
-
-				  //imshow( "Bscanl", cmagIl );
-
-				  //if (skeypressed==1)	
-
-				  //{
-
-				  ////indexi++;
-				  //// this was already done in the earlier code
-				  //sprintf(filename, "bscanlam%03d.png",indexi);
-				  //sprintf(filenamec, "bscanlamc%03d.png",indexi);
-				  ////normalize(bscan, bscan, 0, 255, NORM_MINMAX);
-
-				  //#ifdef __unix__
-				  //strcpy(pathname,dirname);
-				  //strcat(pathname,"/");
-				  //strcat(pathname,filename);
-				  //imwrite(pathname, bscanl);
-
-				  //strcpy(pathname,dirname);
-				  //strcat(pathname,"/");
-				  //strcat(pathname,filenamec);
-				  //imwrite(pathname, cmagIl);
-
-				  //sprintf(filename, "bscanlam%03d",indexi);
-				  //outfile<< filename << "=";
-				  //outfile<<bscanl;
-				  //outfile<<";"<<std::endl;
-
-				  //#else
-				  //imwrite(filename, bscanl);
-				  //imwrite(filenamec, cmagIl);
-				  //outfile << "bscanl" << bscanl;
-				  //#endif		 	
-				  //skeypressed=0; 	 
-
-				  //}
-
-
-				  //bscantransposedl = Mat::zeros(Size(opw/2, oph), CV_64F);
-				  //}
-
-
-
-
+				  
 				  ////////////////////////////////////////////
 
 
 				key = waitKey(3); // wait 30 milliseconds for keypress
 								  // max frame rate at 1280x960 is 30 fps => 33 milliseconds
+								  
+				bool expchanged = 0;
 
 				switch (key)
 				{
@@ -1758,138 +1639,55 @@ int main(int argc, char *argv[])
 					doneflag = 1;
 					break;
 
-/*				case '+':
+				case '+':
 				case '=':
 
 					camtime = camtime + 100;
-					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
-					if (ret == QHYCCD_SUCCESS)
-					{
-						sprintf(textbuffer, "Exp time = %d ", camtime);
-						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
-						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-						imshow("Status", statusimg);
-
-					}
-					else
-					{
-						sprintf(textbuffer, "CONTROL_EXPOSURE failed");
-						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
-						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-						imshow("Status", statusimg);
-						goto failure;
-					}
+					expchanged = 1;
+					
 					break;
 
 				case '-':
 				case '_':
 
 					camtime = camtime - 100;
-					if (camtime < 0)
-						camtime = 0;
-					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
-					if (ret == QHYCCD_SUCCESS)
-					{
-						sprintf(textbuffer, "Exp time = %d ", camtime);
-						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
-						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-						imshow("Status", statusimg);
-					}
-					else
-					{
-						sprintf(textbuffer, "CONTROL_EXPOSURE failed");
-						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
-						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-						imshow("Status", statusimg);
-						goto failure;
-					}
+					if (camtime < 8)	// spinnaker has a min of 8 microsec
+						camtime = 8;
+					expchanged = 1;
+					
 					break;
 
 				case 'U':
 
 					camtime = camtime + 10000;
-					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
-					if (ret == QHYCCD_SUCCESS)
-					{
-						sprintf(textbuffer, "Exp time = %d ", camtime);
-						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
-						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-						imshow("Status", statusimg);
-					}
-					else
-					{
-						sprintf(textbuffer, "CONTROL_EXPOSURE failed");
-						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
-						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-						imshow("Status", statusimg);
-						goto failure;
-					}
+					expchanged = 1;
 					break;
+					
 				case 'D':
 
 					camtime = camtime - 10000;
-					if (camtime < 0)
-						camtime = 0;
-					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
-					if (ret == QHYCCD_SUCCESS)
-					{
-						sprintf(textbuffer, "Exp time = %d ", camtime);
-						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
-						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-						imshow("Status", statusimg);
-					}
-					else
-					{
-						sprintf(textbuffer, "CONTROL_EXPOSURE failed");
-						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
-						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-						imshow("Status", statusimg);
-						goto failure;
-					}
+					if (camtime < 8)
+						camtime = 8;
+					expchanged = 1;
+					
 					break;
+					
 				case 'u':
 
 					camtime = camtime + 1000;
-					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
-					if (ret == QHYCCD_SUCCESS)
-					{
-						sprintf(textbuffer, "Exp time = %d ", camtime);
-						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
-						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-						imshow("Status", statusimg);
-					}
-					else
-					{
-						sprintf(textbuffer, "CONTROL_EXPOSURE failed");
-						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
-						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-						imshow("Status", statusimg);
-						goto failure;
-					}
+					expchanged = 1;
+					
 					break;
+					
 				case 'd':
 
 					camtime = camtime - 1000;
-					if (camtime < 0)
-						camtime = 0;
-					ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
-					if (ret == QHYCCD_SUCCESS)
-					{
-						sprintf(textbuffer, "Exp time = %d ", camtime);
-						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
-						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-						imshow("Status", statusimg);
-					}
-					else
-					{
-						sprintf(textbuffer, "CONTROL_EXPOSURE failed");
-						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
-						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-						imshow("Status", statusimg);
-						goto failure;
-					}
+					if (camtime < 8)
+						camtime = 8;
+					expchanged = 1;
+					
 					break;
-					*/
+					
 
 				case 's':
 				case 'S':
@@ -2081,6 +1879,33 @@ int main(int argc, char *argv[])
 					break;
 
 				}
+				
+				if (expchanged == 1)
+				{
+				//Set exp with QuickSpin
+					ret = 0;
+					if (IsReadable(pCam->ExposureTime) && IsWritable(pCam->ExposureTime))
+					{
+						pCam->ExposureTime.SetValue(camtime);
+						ret = 1;
+					}
+					if (ret == 1)
+					{
+						sprintf(textbuffer, "Exp time = %d ", camtime);
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
+
+					}
+					else
+					{
+						sprintf(textbuffer, "CONTROL_EXPOSURE failed");
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
+						goto failure;
+					}
+				}
 
 				if (doneflag == 1)
 				{
@@ -2134,41 +1959,6 @@ int main(int argc, char *argv[])
 
 
 #endif
-
-
-
-
-/*
-
-	if (camhandle)
-	{
-		StopQHYCCDLive(camhandle);
-
-		ret = CloseQHYCCD(camhandle);
-		if (ret == QHYCCD_SUCCESS)
-		{
-			printf("Closed QHYCCD.\n");
-		}
-		else
-		{
-			goto failure;
-		}
-	}
-
-
-
-	ret = ReleaseQHYCCDResource();
-	if (ret == QHYCCD_SUCCESS)
-	{
-		printf("SDK Resource released successfully.\n");
-	}
-	else
-	{
-		goto failure;
-	}
-*/
-
-
 
 	return 0;
 
