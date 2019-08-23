@@ -12,6 +12,7 @@
 /*
 * modified from BscanFFT.cpp
 * for FLIR Point Grey camera
+* using Spinnaker SDK
 * instead of QHY camera
 *
 * Implementing line scan FFT
@@ -97,45 +98,6 @@ using namespace std;
 
 
 using namespace cv;
-
-// This function prints the device information of the camera from the transport
-// layer; please see NodeMapInfo example for more in-depth comments on printing
-// device information from the nodemap.
-int PrintDeviceInfo(INodeMap & nodeMap)
-{
-    cout << endl << "*** DEVICE INFORMATION ***" << endl << endl;
-
-    try
-    {
-        FeatureList_t features;
-        const CCategoryPtr category = nodeMap.GetNode("DeviceInformation");
-        if (IsAvailable(category) && IsReadable(category))
-        {
-            category->GetFeatures(features);
-
-            for (auto it = features.begin(); it != features.end(); ++it)
-            {
-                const CNodePtr pfeatureNode = *it;
-                cout << pfeatureNode->GetName() << " : ";
-                CValuePtr pValue = static_cast<CValuePtr>(pfeatureNode);
-                cout << (IsReadable(pValue) ? pValue->ToString() : "Node not readable");
-                cout << endl;
-            }
-        }
-        else
-        {
-            cout << "Device control information not available." << endl;
-        }
-    }
-    catch (Spinnaker::Exception &e)
-    {
-        cout << "Error: " << e.what() << endl;
-        return -1;
-    }
-
-    return 0;
-}
-
 
 inline void normalizerows(Mat& src, Mat& dst, double lowerlim, double upperlim)
 {
@@ -809,139 +771,6 @@ int main(int argc, char *argv[])
 	CameraPtr pCam = nullptr;
 	pCam = camList.GetByIndex(0);
 
-	//for (int i = 0; i < num; i++)
-	//{
-		//ret = GetQHYCCDId(i, id);
-		//pCam = camList.GetByIndex(i);
-		/*if (ret == QHYCCD_SUCCESS)
-		{
-			//printf("connected to the first camera from the list,id is %s\n",id);
-			found = 1;
-			break;
-		}*/
-	//}
-/*
-	if (found != 1)
-	{
-		printf("The camera is not QHYCCD or other error \n");
-		goto failure;
-	}*/
-
-	//if (found == 1)
-	//{
-		//camhandle = OpenQHYCCD(id);
-		/*if (camhandle != NULL)
-		{
-			//printf("Open QHYCCD success!\n");
-		}
-		else
-		{
-			printf("Open QHYCCD failed \n");
-			goto failure;
-		}
-		ret = SetQHYCCDStreamMode(camhandle, 1);
-
-
-		ret = InitQHYCCD(camhandle);
-		if (ret == QHYCCD_SUCCESS)
-		{
-			//printf("Init QHYCCD success!\n");
-		}
-		else
-		{
-			printf("Init QHYCCD fail code:%d\n", ret);
-			goto failure;
-		}
-
-
-
-		ret = IsQHYCCDControlAvailable(camhandle, CONTROL_TRANSFERBIT);
-		if (ret == QHYCCD_SUCCESS)
-		{
-			ret = SetQHYCCDBitsMode(camhandle, cambitdepth);
-			if (ret != QHYCCD_SUCCESS)
-			{
-				printf("SetQHYCCDBitsMode failed\n");
-
-				getchar();
-				return 1;
-			}
-
-
-
-		}
-
-
-		ret = SetQHYCCDResolution(camhandle, offsetx, offsety, w, h); //handle, xpos,ypos,xwidth,ywidth
-		if (ret == QHYCCD_SUCCESS)
-		{
-			printf("Resolution set - width = %d height = %d\n", w, h);
-		}
-		else
-		{
-			printf("SetQHYCCDResolution fail\n");
-			goto failure;
-		}
-
-
-
-
-		ret = SetQHYCCDParam(camhandle, CONTROL_USBTRAFFIC, usbtraffic); //handle, parameter name, usbtraffic (which can be 0..100 perhaps)
-		if (ret == QHYCCD_SUCCESS)
-		{
-			//printf("CONTROL_USBTRAFFIC success!\n");
-		}
-		else
-		{
-			printf("CONTROL_USBTRAFFIC fail\n");
-			goto failure;
-		}
-
-		ret = SetQHYCCDParam(camhandle, CONTROL_SPEED, camspeed); //handle, parameter name, speed (which can be 0,1,2)
-		if (ret == QHYCCD_SUCCESS)
-		{
-			//printf("CONTROL_CONTROL_SPEED success!\n");
-		}
-		else
-		{
-			printf("CONTROL_CONTROL_SPEED fail\n");
-			goto failure;
-		}
-
-		ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
-		if (ret == QHYCCD_SUCCESS)
-		{
-			//printf("CONTROL_EXPOSURE success!\n");
-		}
-		else
-		{
-			printf("CONTROL_EXPOSURE fail\n");
-			goto failure;
-		}
-
-		ret = SetQHYCCDParam(camhandle, CONTROL_GAIN, camgain); //handle, parameter name, gain (which can be 0..99)
-		if (ret == QHYCCD_SUCCESS)
-		{
-			//printf("CONTROL_GAIN success!\n");
-		}
-		else
-		{
-			printf("CONTROL_GAIN fail\n");
-			goto failure;
-		}
-
-		ret = SetQHYCCDParam(camhandle, CONTROL_GAMMA, camgamma); //handle, parameter name, gamma (which can be 0..2 perhaps)
-		if (ret == QHYCCD_SUCCESS)
-		{
-			//printf("CONTROL_GAMMA success!\n");
-		}
-		else
-		{
-			printf("CONTROL_GAMMA fail\n");
-			goto failure;
-		}*/
-
-
 		if (cambitdepth == 8)
 		{
 
@@ -953,24 +782,6 @@ int main(int argc, char *argv[])
 			m = Mat::zeros(cv::Size(w, h), CV_16U);
 			mraw = Mat::zeros(cv::Size(w, h), CV_16U);
 		}
-		
-		
-
-/*
-		ret = BeginQHYCCDLive(camhandle);
-		if (ret == QHYCCD_SUCCESS)
-		{
-			printf("BeginQHYCCDLive success!\n");
-			key = waitKey(300);
-		}
-		else
-		{
-			printf("BeginQHYCCDLive failed\n");
-			goto failure;
-		}
-		* */
-		
-		
 
 		/////////////////////////////////////////
 		/////////////////////////////////////////
@@ -979,24 +790,6 @@ int main(int argc, char *argv[])
 
 		doneflag = 0;
 
-/*
-		ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, camtime); //handle, parameter name, exposure time (which is in us)
-		if (ret == QHYCCD_SUCCESS)
-		{
-			sprintf(textbuffer, "Exp time = %d ", camtime);
-			secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
-			putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-			imshow("Status", statusimg);
-		}
-		else
-		{
-			sprintf(textbuffer, "CONTROL_EXPOSURE failed");
-			secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
-			putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
-			imshow("Status", statusimg);
-			goto failure;
-		}
-		*/
 		
 		t_start = time(NULL);
 		fps = 0;
@@ -1031,11 +824,235 @@ int main(int argc, char *argv[])
 			// Retrieve GenICam nodemap
 			INodeMap & nodeMap = pCam->GetNodeMap();
 
-			// Acquire images
-			//result = result | AcquireImages(pCam, nodeMap, nodeMapTLDevice);
-			// Deinitialize camera
+			////////////////////////////////////////////////
+			// Initialize camera settings using Spinnaker SDK
+			////////////////////////////////////////////////
+			/*
+			 in terms of nodes,
+				AcquisitionControl -> AcquisitionMode -> Continuous
+				AcquisitionControl -> ExposureAuto -> Off
+				AcquisitionControl -> ExposureTime -> 1000
+				AnalogControl -> GainAuto -> Off
+				AnalogControl -> Gain -> 0.0
+				AnalogControl -> Gamma -> 1.0
+				ImageFormatControl -> Width -> 1280
+				ImageFormatControl -> Height -> 960
+				ImageFormatControl -> OffsetX -> 0
+				ImageFormatControl -> OffsetY -> 0
+				ImageFormatControl -> PixelFormat -> Mono8
+				ImageFormatControl -> PixelFormat -> Mono16
+				ImageFormatControl -> AdcBitDepth -> Bit12
+				BufferHandlingControl -> StreamBufferHandlingMode -> NewestOnly
+			*/
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			//Set Buffer Handling
 			
-			//put this here,
+			// Only take the latest image, 
+			// https://www.flir.com/support-center/iis/machine-vision/application-note/understanding-buffer-handling/
+			// https://github.com/RoboCup-SSL/ssl-vision/commit/cd0e342dcbc1ead17bb3c8762f48e5be4e513a32
+			pCam->TLStream.StreamBufferHandlingMode.SetValue(StreamBufferHandlingMode_NewestOnly);
+			
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			//Set Acquisition frame rate to a lower value to prevent black frames (due to cpu overload?)
+			CBooleanPtr AcquisitionFrameRateEnable = nodeMap.GetNode("AcquisitionFrameRateEnable");
+			if (!IsAvailable(AcquisitionFrameRateEnable) || !IsReadable(AcquisitionFrameRateEnable)) {
+			  std::cout << "Unable to enable frame rate." << std::endl;
+			  return -1;
+			}
+			AcquisitionFrameRateEnable->SetValue(1);
+			
+			pCam->AcquisitionFrameRate.SetValue(camspeed);
+    
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			//Set Adc bit depth to Bit12
+			CEnumerationPtr ptrAdcBitDepth = nodeMap.GetNode("AdcBitDepth");
+			if (!IsAvailable(ptrAdcBitDepth) || !IsWritable(ptrAdcBitDepth))
+			{
+				cout << "Unable to set adc bit depth as ptr is not writable ..." << endl << endl;
+				return -1;
+			}
+
+			// Retrieve entry node from enumeration node
+			CEnumEntryPtr ptrAdcBitDepth12 = ptrAdcBitDepth->GetEntryByName("Bit12");
+			if (!IsAvailable(ptrAdcBitDepth12) || !IsReadable(ptrAdcBitDepth12))
+			{
+				cout << "Unable to set adc bit depth to 12 as entry is not readable..." << endl << endl;
+				return -1;
+			}
+
+			// Retrieve integer value from entry node
+			const int64_t AdcBitDepth12 = ptrAdcBitDepth12->GetValue();
+
+			// Set integer value from entry node as new value of enumeration node
+			ptrAdcBitDepth->SetIntValue(AdcBitDepth12);
+			
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			//Set auto exposure off
+			CEnumerationPtr ptrExposureAuto = nodeMap.GetNode("ExposureAuto");
+			if (!IsAvailable(ptrExposureAuto) || !IsWritable(ptrExposureAuto))
+			{
+				cout << "Unable to set auto exp off as ptr is not writable ..." << endl << endl;
+				return -1;
+			}
+
+			// Retrieve entry node from enumeration node
+			CEnumEntryPtr ptrExposureAutoOff = ptrExposureAuto->GetEntryByName("Off");
+			if (!IsAvailable(ptrExposureAutoOff) || !IsReadable(ptrExposureAutoOff))
+			{
+				cout << "Unable to set auto exp off as entry is not readable..." << endl << endl;
+				return -1;
+			}
+
+			// Retrieve integer value from entry node
+			const int64_t ExposureAutoOff = ptrExposureAutoOff->GetValue();
+
+			// Set integer value from entry node as new value of enumeration node
+			ptrExposureAuto->SetIntValue(ExposureAutoOff);
+			
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			//Set auto gain off
+			CEnumerationPtr ptrGainAuto = nodeMap.GetNode("GainAuto");
+			if (!IsAvailable(ptrGainAuto) || !IsWritable(ptrGainAuto))
+			{
+				cout << "Unable to set auto gain off as ptr is not writable ..." << endl << endl;
+				return -1;
+			}
+
+			// Retrieve entry node from enumeration node
+			CEnumEntryPtr ptrGainAutoOff = ptrGainAuto->GetEntryByName("Off");
+			if (!IsAvailable(ptrGainAutoOff) || !IsReadable(ptrGainAutoOff))
+			{
+				cout << "Unable to set auto gain off as entry is not readable..." << endl << endl;
+				return -1;
+			}
+
+			// Retrieve integer value from entry node
+			const int64_t GainAutoOff = ptrGainAutoOff->GetValue();
+
+			// Set integer value from entry node as new value of enumeration node
+			ptrGainAuto->SetIntValue(GainAutoOff);
+			
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			//Set gain with QuickSpin
+			if (IsReadable(pCam->Gain) && IsWritable(pCam->Gain))
+			{
+				//pCam->Gain.SetValue(pCam->Gain.GetMin());
+				pCam->Gain.SetValue(camgain);
+
+				cout << "Gain set to " << pCam->Gain.GetValue() << " dB ..." << endl;
+			}
+			else
+			{
+				cout << "Gain not available..." << endl;
+				result = -1;
+			}
+			// Gain is in dB
+			
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			//Set exp with QuickSpin
+			if (IsReadable(pCam->ExposureTime) && IsWritable(pCam->ExposureTime))
+			{
+				pCam->ExposureTime.SetValue(camtime);
+
+				cout << "Exp set to " << pCam->ExposureTime.GetValue() << " microsec ..." << endl;
+			}
+			else
+			{
+				cout << "Exp not available..." << endl;
+				result = -1;
+			}
+			
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			//Set offsetx 
+			if (IsReadable(pCam->OffsetX) && IsWritable(pCam->OffsetX))
+			{
+				//pCam->OffsetX.SetValue(pCam->OffsetX.GetMin());
+				pCam->OffsetX.SetValue(offsetx);
+
+				
+			}
+			else
+			{
+				cout << "Offset X not available..." << endl;
+				result = -1;
+			}
+			
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			//Set offsety 
+			if (IsReadable(pCam->OffsetY) && IsWritable(pCam->OffsetY))
+			{
+				pCam->OffsetY.SetValue(offsety);
+
+				
+			}
+			else
+			{
+				cout << "Offset Y not available..." << endl;
+				result = -1;
+			}
+			
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			//Set Width 
+			if (IsReadable(pCam->Width) && IsWritable(pCam->Width))
+			{
+				pCam->Width.SetValue(w);
+
+				
+			}
+			else
+			{
+				cout << "Width not available..." << endl;
+				result = -1;
+			}
+			
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			//Set Height 
+			if (IsReadable(pCam->Height) && IsWritable(pCam->Height))
+			{
+				pCam->Height.SetValue(h);
+
+				
+			}
+			else
+			{
+				cout << "Height not available..." << endl;
+				result = -1;
+			}
+			
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			//Set PixelFormat - bitdepth 
+			if (IsReadable(pCam->PixelFormat) && IsWritable(pCam->PixelFormat))
+			{
+				if (cambitdepth == 8)
+				pCam->PixelFormat.SetValue(PixelFormat_Mono8);
+				else
+				pCam->PixelFormat.SetValue(PixelFormat_Mono16);
+
+				cout << "Pixel format set to " << pCam->PixelFormat.GetCurrentEntry()->GetSymbolic() << "..." << endl;
+			}
+			else
+			{
+				cout << "Pixel format not available..." << endl;
+				result = -1;
+			}
+			
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			//Set Gamma 
+			if (IsReadable(pCam->Gamma) && IsWritable(pCam->Gamma))
+			{
+				pCam->Gamma.SetValue(camgamma);
+				
+				cout << "Gamma set to " << pCam->Gamma.GetValue() << "..." << endl;
+			}
+			else
+			{
+				cout << "Gamma not available..." << endl;
+				result = -1;
+			}
+
+			
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			//Changing to continuous acq
 			CEnumerationPtr ptrAcquisitionMode = nodeMap.GetNode("AcquisitionMode");
 			if (!IsAvailable(ptrAcquisitionMode) || !IsWritable(ptrAcquisitionMode))
 			{
@@ -1056,6 +1073,9 @@ int main(int argc, char *argv[])
 
 			// Set integer value from entry node as new value of enumeration node
 			ptrAcquisitionMode->SetIntValue(acquisitionModeContinuous);
+			/////////////////////////////////////////////////////////////////////////////////////////////////////////
+			
+			
 			ImagePtr pResultImage;
 			ImagePtr convertedImage;
 			// trying begin and end acq, to see if it will improve fps
