@@ -256,6 +256,7 @@ int main(int argc, char *argv[])
 		pCam->EndAcquisition();
 		pCam->DeInit();
 		
+		pCam = nullptr;	// without this, spinnaker complains
 		// Clear camera list before releasing system
         camList.Clear();
 
