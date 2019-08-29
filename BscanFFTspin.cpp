@@ -3,7 +3,7 @@
 #include "windows.h"
 // anything before a precompiled header is ignored, 
 // so no endif here! add #endif to compile on __unix__ !
-#endif
+//#endif
 #ifdef _WIN64
 //#include <qhyccd.h>
 #endif
@@ -1067,9 +1067,19 @@ int main(int argc, char *argv[])
 				else
 				{
 					ret=1;
-					// assuming Mono8 1280 x 960 for now
 					convertedImage = pResultImage;
-					mraw = cv::Mat(960, 1280, CV_8UC1, convertedImage->GetData(), convertedImage->GetStride());
+					if (bpp == 8)
+					{
+						// Mono8 w x h 
+						
+						mraw = cv::Mat(h, w, CV_8UC1, convertedImage->GetData(), convertedImage->GetStride());
+					}
+					else
+					{
+						//Mono16 w x h
+						mraw = cv::Mat(h, w, CV_16UC1, convertedImage->GetData(), convertedImage->GetStride());
+					}
+
 				}
 			} // end of while IsIncomplete
 			
@@ -1086,8 +1096,9 @@ int main(int argc, char *argv[])
 					medianBlur(mraw, m, mediann);
 				else
 					mraw.copyTo(m);
-
-				resize(m, opm, Size(), 1.0 / binvalue, 1.0 / binvalue, INTER_AREA);	// binning (averaging)
+				 
+					resize(m, opm, Size(), 1.0 / binvalue, 1.0 / binvalue, INTER_AREA);	// binning (averaging)
+					// opencv seems to automatically display CV_16U correctly
 				imshow("show", opm);
 
 				if (saveinterferograms)
