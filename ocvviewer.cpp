@@ -53,6 +53,7 @@
 #include <iostream>
 #include <sstream>
 
+
 using namespace std;
 ///////////////////////////
 
@@ -389,7 +390,7 @@ inline void savematasdata(cv::FileStorage& o, char* f, Mat m)
 #endif
 
 int main(int argc, char *argv[])
-{ /*
+{ 
 	
 	int num = 0;
 	//qhyccd_handle *camhandle = NULL;
@@ -436,97 +437,22 @@ int main(int argc, char *argv[])
 	int  fps, key;
 	int t_start, t_end;
 
-	std::ifstream infile("BscanFFTspinj.ini");
-	std::string tempstring;
-	char dirdescr[60];
-	sprintf(dirdescr, "_");
-
-	//namedWindow("linearized",0); // 0 = WINDOW_NORMAL
-	//moveWindow("linearized", 20, 500);
-
-	//namedWindow("Bscanl",0); // 0 = WINDOW_NORMAL
-	//moveWindow("Bscanl", 400, 0);
-
+	
 	char dirname[80];
 	char filename[20];
 	char filenamec[20];
 	char pathname[140];
 	char lambdamaxstr[40];
 	char lambdaminstr[40];
+	
+	
+	
 	struct tm *timenow;
 
 	time_t now = time(NULL);
-
-	// inputs from ini file
-	if (infile.is_open())
-	{
-
-		infile >> tempstring;
-		infile >> tempstring;
-		infile >> tempstring;
-		// first three lines of ini file are comments
-		infile >> camgain;
-		infile >> tempstring;
-		infile >> camtime;
-		infile >> tempstring;
-		infile >> bpp;
-		infile >> tempstring;
-		infile >> w;
-		infile >> tempstring;
-		infile >> h;
-		infile >> tempstring;
-		infile >> offsetx;
-		infile >> tempstring;
-		infile >> offsety;
-		infile >> tempstring;
-		infile >> camspeed;
-		infile >> tempstring;
-		infile >> cambinx;
-		infile >> tempstring;
-		infile >> cambiny;
-		infile >> tempstring;
-		infile >> usbtraffic;
-		infile >> tempstring;
-		infile >> binvalue;
-		infile >> tempstring;
-		infile >> dirdescr;
-		infile >> tempstring;
-		infile >> averages;
-		infile >> tempstring;
-		infile >> numfftpoints;
-		infile >> tempstring;
-		infile >> saveframes;
-		infile >> tempstring;
-		infile >> manualaveraging;
-		infile >> tempstring;
-		infile >> manualaverages;
-		infile >> tempstring;
-		infile >> saveinterferograms;
-		infile >> tempstring;
-		infile >> movavgn;
-		infile >> tempstring;
-		infile >> numdisplaypoints;
-		infile >> tempstring;
-		infile >> lambdaminstr;
-		infile >> tempstring;
-		infile >> lambdamaxstr;
-		infile >> tempstring;
-		infile >> mediann;
-		infile >> tempstring;
-		infile >> increasefftpointsmultiplier;
-		infile >> tempstring;
-		infile >> rowwisenormalize;
-		infile >> tempstring;
-		infile >> donotnormalize;
-		infile.close();
-
-		lambdamin = atof(lambdaminstr);
-		lambdamax = atof(lambdamaxstr);
-		averagestoggle = averages;
-	}
-
-	else std::cout << "Unable to open ini file, using defaults.";
-
+	
+	
+	
 	namedWindow("show", 0); // 0 = WINDOW_NORMAL
 	moveWindow("show", 0, 0);
 
@@ -536,18 +462,7 @@ int main(int argc, char *argv[])
 	namedWindow("Status", 0); // 0 = WINDOW_NORMAL
 	moveWindow("Status", 0, 500);
 
-	if (ROIreport)
-	{
-		namedWindow("ROI intensity", 0); // 0 = WINDOW_NORMAL
-		moveWindow("ROI intensity", 800, 500);
-	}
-
-	if (manualaveraging)
-	{
-		namedWindow("Bscanm", 0); // 0 = WINDOW_NORMAL
-		moveWindow("Bscanm", 800, 400);
-	}
-
+	
 
 	/////////////////////////////////////
 	// init camera, variables, etc
@@ -707,83 +622,22 @@ int main(int argc, char *argv[])
 		//printf("f=%d, klinear=%f, diffk=%f, k=%f, nearesti=%d\n",f, klinear.at<double>(0,f), diffk.at<double>(0,nearestkindex.at<int>(0,f)), k.at<double>(0,nearestkindex.at<int>(0,f)),nearestkindex.at<int>(0,f) );
 		//printf("f=%d, fractionalk=%f\n",f, fractionalk.at<double>(0,f));
 	}
-
-
-
-	timenow = localtime(&now);
-
-	strftime(dirname, sizeof(dirname), "%Y-%m-%d_%H_%M_%S-", timenow);
-
-	strcat(dirname, dirdescr);
-#ifdef _WIN64
-	CreateDirectoryA(dirname, NULL);
-	cv::FileStorage outfile;
-	sprintf(filename, "BscanFFT.xml");
-	strcpy(pathname, dirname);
-	strcat(pathname, "\\");
-	strcat(pathname, filename);
-	outfile.open(pathname, cv::FileStorage::WRITE);
-#else
-	mkdir(dirname, 0755);
-#endif
-
-#ifdef __unix__	
-	sprintf(filename, "BscanFFT.m");
-	strcpy(pathname, dirname);
-	strcat(pathname, "/");
-	strcat(pathname, filename);
-	std::ofstream outfile(pathname);
-#endif
-
-
-
-	//ret = InitQHYCCDResource();
-	SystemPtr system = System::GetInstance();
-	CameraList camList = system->GetCameras();
-	num = camList.GetSize();
-	int result;
-	/*
-	if (ret != 1)
-	{
-		printf("Init SDK not successful!\n");
-	}
-
-	num = ScanQHYCCD();*/
-	/*
-	if (num > 0)
-	{
-		//printf("Found camera,the num is %d \n", num);
-	}
-	else
-	{
-		printf("camera not found, please check the cable and power.\n");
-		// Clear camera list before releasing system
-        camList.Clear();
-
-        // Release system
-        system->ReleaseInstance();
-		//goto failure;
-	}
 	
-	CameraPtr pCam = nullptr;
-	pCam = camList.GetByIndex(0);
+	strcpy(pathname,"bscan001.ocv");
+	
+	mraw = matread(pathname);
+	
+	minMaxLoc(mraw, &minVal, &maxVal);
+	cout << endl << "Min-Max = " << minVal << " to " << maxVal << " dB" << endl;
+	
+	normalize(mraw, opm, 0.0, 1, NORM_MINMAX);
+	
+	imshow("show", opm);
+	waitKey(0);
+	
 
-		if (cambitdepth == 8)
-		{
-
-			m = Mat::zeros(cv::Size(w, h), CV_8U);
-			mraw = Mat::zeros(cv::Size(w, h), CV_8U);
-		}
-		else // is 16 bit
-		{
-			m = Mat::zeros(cv::Size(w, h), CV_16U);
-			mraw = Mat::zeros(cv::Size(w, h), CV_16U);
-		}
-
-		/////////////////////////////////////////
-		/////////////////////////////////////////
-		//outfile<<"%Data cube in MATLAB compatible format - m(h,w,slice)"<<std::endl;
-
+	/*
+	
 
 		doneflag = 0;
 
