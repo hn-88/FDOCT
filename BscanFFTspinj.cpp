@@ -101,6 +101,243 @@ using namespace std;
 
 using namespace cv;
 
+////////////////////////////////
+// adapted from Trigger_QuickSpin example
+enum triggerType
+{
+    SOFTWARE,
+    HARDWARE
+};
+
+const triggerType chosenTrigger = SOFTWARE;
+
+ 
+int ConfigureTrigger(CameraPtr pCam)
+{
+    int result = 0;
+
+    try
+    {
+        
+        
+        // disable trigger in order to configure whether trigger source
+        
+        if (pCam->TriggerMode == NULL || pCam->TriggerMode.GetAccessMode() != RW)
+        {
+            cout << "Unable to disable trigger mode. Aborting..." << endl;
+            return -1;
+        }
+
+        pCam->TriggerMode.SetValue(TriggerMode_Off);
+
+        if (chosenTrigger == SOFTWARE)
+        {
+            // Set the trigger source to software
+            if (pCam->TriggerSource == NULL || pCam->TriggerSource.GetAccessMode() != RW)
+            {
+                cout << "Unable to set trigger mode (node retrieval). Aborting..." << endl;
+                return -1;
+            }
+
+            pCam->TriggerSource.SetValue(TriggerSource_Software);
+
+            
+        }
+        else
+        {
+            // Set the trigger source to hardware (using 'Line0')
+            if (pCam->TriggerSource == NULL || pCam->TriggerSource.GetAccessMode() != RW)
+            {
+                cout << "Unable to set trigger mode (node retrieval). Aborting..." << endl;
+                return -1;
+            }
+
+            pCam->TriggerSource.SetValue(TriggerSource_Line0);
+
+            
+        }
+
+        //
+        // and then Turn trigger mode on again
+        //
+        
+        if (pCam->TriggerMode == NULL || pCam->TriggerMode.GetAccessMode() != RW)
+        {
+            cout << "Unable to disable trigger mode. Aborting..." << endl;
+            return -1;
+        }
+
+        pCam->TriggerMode.SetValue(TriggerMode_On);
+
+        
+    }
+    catch (Spinnaker::Exception &e)
+    {
+        cout << "Error: " << e.what() << endl;
+        result = -1;
+    }
+
+    return result;
+}
+
+
+int GrabNextImageByTrigger(CameraPtr pCam, ImagePtr & pResultImage)
+{
+    int result = 0;
+
+    try
+    {
+       
+        if (chosenTrigger == SOFTWARE)
+        {
+            // Get user input
+            //cout << "Press a key ... " ;
+            waitKey(0);
+
+            // Execute software trigger
+            if (pCam->TriggerSoftware == NULL || pCam->TriggerSoftware.GetAccessMode() != WO)
+            {
+                cout << "Unable to execute trigger..." << endl;
+                return -1;
+            }
+
+            pCam->TriggerSoftware.Execute();
+        }
+        else
+        {
+            // send hardware trigger pulse
+        }
+
+        // Retrieve the next received image
+        pResultImage = pCam->GetNextImage();
+    }
+    catch (Spinnaker::Exception &e)
+    {
+        cout << "Error: " << e.what() << endl;
+        result = -1;
+    }
+
+    return result;
+}
+
+
+int ResetTrigger(CameraPtr pCam)
+{
+    int result = 0;
+
+    try
+    {
+        
+        if (pCam->TriggerMode == NULL || pCam->TriggerMode.GetAccessMode() != RW)
+        {
+            cout << "Unable to disable trigger mode. Aborting..." << endl;
+            return -1;
+        }
+
+        pCam->TriggerMode.SetValue(TriggerMode_Off);
+
+        
+    }
+    catch (Spinnaker::Exception &e)
+    {
+        cout << "Error: " << e.what() << endl;
+        result = -1;
+    }
+
+    return result;
+}
+
+int AcquireImages(CameraPtr pCam, int numofimages, char * dirname, char type, int tkimgcounter)
+{
+    int result = 0;
+
+    //cout << endl << "*** IMAGE ACQUISITION ***" << endl << endl;
+
+    try
+    {
+        // Set acquisition mode to continuous
+        if (pCam->AcquisitionMode == NULL || pCam->AcquisitionMode.GetAccessMode() != RW)
+        {
+            cout << "Unable to set acquisition mode to continuous. Aborting..." << endl << endl;
+            return -1;
+        }
+
+        
+        // Begin acquiring images
+        pCam->BeginAcquisition();
+
+        cout << "Acquiring " << type << tkimgcounter << " images..." << endl;
+
+        
+        // Retrieve, convert, and save images
+        
+        unsigned int imageCnt = 0;
+
+        while( imageCnt < numofimages)
+        {
+            try
+            {
+                // Retrieve next image by trigger
+                ImagePtr pResultImage = nullptr;
+
+                result = result | GrabNextImageByTrigger(pCam, pResultImage);
+
+                // Ensure image completion
+                if (pResultImage->IsIncomplete())
+                {
+                    // don't update image count
+                }
+                else
+                {
+                    // Print image information
+                    //cout << "Grabbed image " << imageCnt << ", width = " << pResultImage->GetWidth() << ", height = " << pResultImage->GetHeight() << endl;
+
+                    // Convert image to mono 16
+                    ImagePtr convertedImage = pResultImage->Convert(PixelFormat_Mono16);
+
+                    // Create a unique filename
+                    ostringstream filename;
+
+                    filename << dirname << "/";
+                    if (type == 't')
+						filename << "Trig" ;
+                    else
+						filename << "KTrig";
+                    filename << setw(3) << setfill('0') << tkimgcounter << "-" << setw(3) << setfill('0') << imageCnt << ".png";
+
+                    // Save image as 16 bit png
+                    convertedImage->Save(filename.str().c_str());
+                    imageCnt++;
+
+                }
+
+                // Release image
+                pResultImage->Release();
+                
+
+                
+            }
+            catch (Spinnaker::Exception &e)
+            {
+                cout << "Error: " << e.what() << endl;
+                result = -1;
+            }
+        }	// end of while imgCnt < numofimages loop 
+
+        // End acquisition
+        pCam->EndAcquisition();
+        cout << "Done. " << endl;
+    }
+    catch (Spinnaker::Exception &e)
+    {
+        cout << "Error: " << e.what() << endl;
+        result = -1;
+    }
+
+    return result;
+}
+////////////////////////////////////////////
+
 inline void normalizerows(Mat& src, Mat& dst, double lowerlim, double upperlim)
 {
 	// https://stackoverflow.com/questions/10673715/how-to-normalize-rows-of-an-opencv-mat-without-a-loop
@@ -319,6 +556,7 @@ inline Mat smoothmovavg(Mat sm, int sn)
 
 }
 
+//////////////////////////////////////////////////
 // from http://stackoverflow.com/a/32357875/5294258
 void matwrite(const string& filename, const Mat& mat)
 {
@@ -364,6 +602,7 @@ Mat matread(const string& filename)
 
     return mat;
 }
+//////////////////////////////////////////
 
 inline void savematasbin(char* p, char* d, char* f, Mat m)
 {
@@ -461,7 +700,7 @@ int main(int argc, char *argv[])
 
 	bool doneflag = 0, skeypressed = 0, bkeypressed = 0, pkeypressed = 0;
 	bool jlockin = 0, jkeypressed = 0, ckeypressed = 0;
-	bool kkeypressed = 0;
+	bool kkeypressed = 0, tkeypressed = 0;
 	Mat jmask, jmaskt;
 	double lambdamin, lambdamax;
 	lambdamin = 816e-9;
@@ -495,6 +734,11 @@ int main(int argc, char *argv[])
 	char pathname[140];
 	char lambdamaxstr[40];
 	char lambdaminstr[40];
+	///////////////
+	char offlinetoolpath[180];
+	char *newargv[] = { NULL, "hello", "world", NULL };
+    char *newenviron[] = { NULL };
+	
 	struct tm *timenow;
 
 	time_t now = time(NULL);
@@ -560,6 +804,8 @@ int main(int argc, char *argv[])
 		infile >> rowwisenormalize;
 		infile >> tempstring;
 		infile >> donotnormalize;
+		infile >> tempstring;
+		infile >> offlinetoolpath;
 		infile.close();
 
 		lambdamin = atof(lambdaminstr);
@@ -635,7 +881,7 @@ int main(int argc, char *argv[])
 
 	bool zeroisactive = 1;
 
-	int nr, nc;
+	int timgcount = 0, kimgcount = 0;
 
 	Mat m, opm, opmvector, bscan, bscanlog, bscandb, bscandisp, bscandispmanual, bscantemp, bscantemp2, bscantemp3, bscantransposed, chan[3];
 	Mat tempmat;
@@ -1314,6 +1560,31 @@ int main(int argc, char *argv[])
 				// because we actually want the columns and not rows
 				// using DFT_ROWS
 				// But that has rolling shutter issues, so going back to rows
+				
+				if (tkeypressed == 1)
+				{
+					// do triggered capture
+					timgcount++;
+					pCam->EndAcquisition();
+					ConfigureTrigger(pCam);
+					AcquireImages(pCam, manualaverages, dirname, 't', timgcount);
+					ResetTrigger(pCam);
+					pCam->BeginAcquisition();
+					tkeypressed = 0;
+				}
+				
+				if (kkeypressed == 1)
+				{
+					// do triggered capture of J0 frame
+					kimgcount++;
+					pCam->EndAcquisition();
+					ConfigureTrigger(pCam);
+					AcquireImages(pCam, manualaverages, dirname, 'k', kimgcount);
+					ResetTrigger(pCam);
+					pCam->BeginAcquisition();
+					kkeypressed = 0;
+				}
+					
 
 				if (bkeypressed == 1)
 
@@ -1379,6 +1650,10 @@ int main(int argc, char *argv[])
 						}
 					} // end if not saveinterferograms
 
+					// save to disk also, for offline computing
+					sprintf(filename, "spectrum");
+					savematasbin(pathname, dirname, filename, data_yb);
+					
 					sprintf(textbuffer, "S(k) saved.");
 					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
@@ -1819,6 +2094,7 @@ int main(int argc, char *argv[])
 								  // max frame rate at 1280x960 is 30 fps => 33 milliseconds
 								  
 				bool expchanged = 0;
+				pid_t pid;
 
 				switch (key)
 				{
@@ -1909,11 +2185,45 @@ int main(int argc, char *argv[])
 
 					kkeypressed = 1;
 					break;
+					
+				case 't':
+				case 'T':
+
+					tkeypressed = 1;
+					break;
 
 				case 'c':
 				case 'C':
 
 					ckeypressed = 1;
+					break;
+					
+				case 'y':
+				case 'Y':
+
+					//std::system(offlinetoolpath); 
+					// - this causes the BscanFFT program to wait for the offline tool to finish
+					pid = fork();
+
+					if (pid == 0)
+					{
+						// child process
+					
+						execv(offlinetoolpath, newargv);
+						
+					}
+					else if (pid > 0)
+					{
+						// parent process
+						
+					}
+					else
+					{
+						// fork failed
+						printf("fork() failed!\n");
+						return 1;
+					}
+					
 					break;
 
 				case ']':
