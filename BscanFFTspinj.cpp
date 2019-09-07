@@ -736,8 +736,7 @@ int main(int argc, char *argv[])
 	char lambdaminstr[40];
 	///////////////
 	char offlinetoolpath[180];
-	char *newargv[] = { NULL, "hello", "world", NULL };
-    char *newenviron[] = { NULL };
+	
 	
 	struct tm *timenow;
 
@@ -823,6 +822,8 @@ int main(int argc, char *argv[])
 
 	namedWindow("Status", 0); // 0 = WINDOW_NORMAL
 	moveWindow("Status", 0, 500);
+	
+	
 
 	if (ROIreport)
 	{
@@ -1023,8 +1024,14 @@ int main(int argc, char *argv[])
 	std::ofstream outfile(pathname);
 #endif
 
-
-
+	sprintf(filenamec, "%3d", manualaverages);
+	char *newargv[] = { offlinetoolpath, dirname, filenamec, NULL };
+	// the first one is the executable's name, 
+	// which is argv[0]. 
+	// we're just using filenamec as a temp string, 
+	// converting manualaverages to a string
+	//Finally, there needs to be a NULL at the end. 
+	
 	//ret = InitQHYCCDResource();
 	SystemPtr system = System::GetInstance();
 	CameraList camList = system->GetCameras();
@@ -2095,6 +2102,7 @@ int main(int argc, char *argv[])
 								  
 				bool expchanged = 0;
 				pid_t pid;
+				
 
 				switch (key)
 				{
@@ -2208,7 +2216,7 @@ int main(int argc, char *argv[])
 					if (pid == 0)
 					{
 						// child process
-					
+						
 						execv(offlinetoolpath, newargv);
 						
 					}
