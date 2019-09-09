@@ -12,6 +12,14 @@ Basic build instructions for GCC using cmake:
 4. cmake ..
 5. make BscanFFTwebcam.bin
 
+-------------------------
+Dependencies:
+The following dependencies for OpenCV need to be installed - on Ubuntu, this can be done by 
+sudo apt-get install build-essential cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev python-dev python-numpy libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev libjasper-dev libdc1394-2 libusb-1.0-0-dev libusb-1.0-0 libopencv-dev
+
+
+-------------------------
+
 The .travis.yml file contains build instructions for Travis CI - travis-ci.org - which can be replicated on the commandline for building. 
 
 -------------------------
