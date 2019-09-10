@@ -1,5 +1,5 @@
 # FDOCT is now re-christened ABC-OCT: Affordable Bscan Camera-based Optical Coherence Tomography
-Code for doing realtime FD-OCT. See usage.txt for keystroke list, also enumerated in the code as comments.
+Code for doing realtime Fourier Domain Optical Coherence Tomography (FD-OCT). See usage.txt for keystroke list, also enumerated in the code as comments.
 
 Release including a windows binary and a Linux binary as an AppImage -
 
