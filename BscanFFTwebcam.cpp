@@ -409,6 +409,8 @@ int main(int argc, char *argv[])
 	double bscanthreshold = -30.0;
 	bool rowwisenormalize = 0;
 	bool donotnormalize = 1;
+	int channelnum = 0; // when capturing RGB images, only one channel will be processed. 
+	// or the sum of all three channels. 
 
 	w = 640;
 	h = 480;
@@ -416,12 +418,12 @@ int main(int argc, char *argv[])
 	int  fps, key;
 	int t_start, t_end;
 
-	std::ifstream infile("BscanFFT.ini");
+	std::ifstream infile("BscanFFTwebcam.ini");
 	// if creating an AppImage, comment the above, 
 	// and use the lines below instead.
 	//char* pPath;
         //pPath = getenv("OWD");		// Original Working Directory environment variable
-        //strcat(pPath, "/BscanFFT.ini");
+        //strcat(pPath, "/BscanFFTwebcam.ini");
 	//std::ifstream infile(pPath);
 	/////////////////////////////////
 	
@@ -502,6 +504,8 @@ int main(int argc, char *argv[])
 		infile >> rowwisenormalize;
 		infile >> tempstring;
 		infile >> donotnormalize;
+		infile >> tempstring;
+		infile >> channelnum;
 		infile.close();
 		
 		lambdamin = atof(lambdaminstr);
@@ -1012,7 +1016,27 @@ int main(int argc, char *argv[])
 			// all our processing is with single channel data. So, we take only one channel
 			// from the RGB returned by normal webcams
 			split(frame, rgbchannels);
-			rgbchannels[0].copyTo(mraw);
+			if (channelnum<3)
+				rgbchannels[channelnum].copyTo(mraw);
+			else
+			{
+				Mat tempraw, tempraw64, accumulatormat;
+				// add all channels together
+				rgbchannels[0].copyTo(tempraw);
+				tempraw.convertTo(tempraw64, CV_64F);
+				tempraw64.copyTo(mraw);
+				//mraw = mraw + rgbchannels[1];
+				rgbchannels[1].copyTo(tempraw);
+				tempraw.convertTo(tempraw64, CV_64F);
+				mraw = mraw + tempraw64;
+				//mraw = mraw + rgbchannels[2];
+				rgbchannels[2].copyTo(tempraw);
+				tempraw.convertTo(tempraw64, CV_64F);
+				mraw = mraw + tempraw64;
+				mraw = mraw*0.00130718954;	// 1/255/3 = 0.00130718954
+				// divide by 255*3, since imshow etc expect 0-1 normalized for CV64F
+			}
+				
 
 			if (ret == 1)
 			{
@@ -1023,7 +1047,11 @@ int main(int argc, char *argv[])
 					mraw.copyTo(m);
 				
 				resize(m, opm, Size(), 1.0 / binvalue, 1.0 / binvalue, INTER_AREA);	// binning (averaging)
+				 
 				imshow("show", opm);
+				 
+				
+				
 				
 				if (saveinterferograms)
 						{
