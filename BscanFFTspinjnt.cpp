@@ -270,7 +270,7 @@ int AcquireImages(CameraPtr pCam, int numofimages, char * dirname, char type, in
                 pResultImage[imageCnt] = nullptr;
 
                 //result = result | GrabNextImageByTrigger(pCam, pResultImage[imageCnt]);
-                pResultImage[imageCnt] = pCam->GetNextImage()
+                pResultImage[imageCnt] = pCam->GetNextImage();
 
                 // Ensure image completion
                 if (pResultImage[imageCnt]->IsIncomplete())
@@ -316,19 +316,18 @@ int AcquireImages(CameraPtr pCam, int numofimages, char * dirname, char type, in
                     convertedImage->Save(filename.str().c_str());
                     imageCnt++;
 
-                }
-
-                // Release image
-                pResultImage[imageCnt]->Release();
-                
-
-                
-            }
-            catch (Spinnaker::Exception &e)
+			}
+			catch (Spinnaker::Exception &e)
             {
                 cout << "Error: " << e.what() << endl;
                 result = -1;
             }
+
+			// Release image
+			pResultImage[imageCnt]->Release();
+                
+
+            
         }	// end of while imgCnt < numofimages loop 
 
         // End acquisition
