@@ -15,7 +15,7 @@
 * using Spinnaker SDK
 * instead of QHY camera, 
 * doing J0 subtraction 
-* and batch capture, no triggering.
+* and batch capture, no hardware triggering.
 *
 * Implementing line scan FFT
 * for SD OCT
@@ -55,7 +55,7 @@
 *
 *
 * Hari Nandakumar
-* 30 Aug 2019  *
+* 20 Sep 2019  *
 *
 *
 */
@@ -269,7 +269,8 @@ int AcquireImages(CameraPtr pCam, int numofimages, char * dirname, char type, in
                 // Retrieve next image by trigger
                 pResultImage[imageCnt] = nullptr;
 
-                result = result | GrabNextImageByTrigger(pCam, pResultImage[imageCnt]);
+                //result = result | GrabNextImageByTrigger(pCam, pResultImage[imageCnt]);
+                pResultImage[imageCnt] = pCam->GetNextImage()
 
                 // Ensure image completion
                 if (pResultImage[imageCnt]->IsIncomplete())
