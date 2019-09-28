@@ -109,7 +109,7 @@ enum triggerType
     HARDWARE
 };
 
-const triggerType chosenTrigger = SOFTWARE;
+const triggerType chosenTrigger = HARDWARE;
 
  
 int ConfigureTrigger(CameraPtr pCam)
@@ -336,6 +336,109 @@ int AcquireImages(CameraPtr pCam, int numofimages, char * dirname, char type, in
 
     return result;
 }
+// end of AcquireImages()
+
+int AcquireImagesAlt(CameraPtr pCam, int numofimages, char * dirname,  int tkimgcounter)
+{
+	// acquire signal and J0 images alternately, on hardware trigger
+	// signal image is first, next is J0 image, and then next signal image, and so on. 
+	// That is, Trig001-000.png, KTrig001-000.png, Trig001-001.png, KTrig001-001.png, ... in that order.
+	
+    int result = 0;
+    char type = 't';
+
+    //cout << endl << "*** IMAGE ACQUISITION ***" << endl << endl;
+
+    try
+    {
+        // Set acquisition mode to continuous
+        if (pCam->AcquisitionMode == NULL || pCam->AcquisitionMode.GetAccessMode() != RW)
+        {
+            cout << "Unable to set acquisition mode to continuous. Aborting..." << endl << endl;
+            return -1;
+        }
+
+        
+        // Begin acquiring images
+        pCam->BeginAcquisition();
+
+        cout << "Acquiring alt"  << tkimgcounter << " images..." << endl;
+
+        
+        // Retrieve, convert, and save images
+        
+        unsigned int imageCnt = 0;
+
+        while( imageCnt < numofimages)
+        {
+            try
+            {
+                // Retrieve next image by trigger
+                ImagePtr pResultImage = nullptr;
+
+                result = result | GrabNextImageByTrigger(pCam, pResultImage);
+
+                // Ensure image completion
+                if (pResultImage->IsIncomplete())
+                {
+                    // don't update image count
+                }
+                else
+                {
+                    // Print image information
+                    //cout << "Grabbed image " << imageCnt << ", width = " << pResultImage->GetWidth() << ", height = " << pResultImage->GetHeight() << endl;
+
+                    // Convert image to mono 16
+                    ImagePtr convertedImage = pResultImage->Convert(PixelFormat_Mono16);
+
+                    // Create a unique filename
+                    ostringstream filename;
+
+                    filename << dirname << "/";
+                    if (type == 't')
+						filename << "Trig" ;
+                    else
+						filename << "KTrig";
+                    filename << setw(3) << setfill('0') << tkimgcounter << "-" << setw(3) << setfill('0') << imageCnt << ".png";
+
+                    // Save image as 16 bit png
+                    convertedImage->Save(filename.str().c_str());
+                    if (type == 't')
+						type = 'k';	// for the next capture
+					else
+					{
+						imageCnt++;
+						type = 't';	// for the next capture
+					}
+
+                }
+
+                // Release image
+                pResultImage->Release();
+                
+
+                
+            }
+            catch (Spinnaker::Exception &e)
+            {
+                cout << "Error: " << e.what() << endl;
+                result = -1;
+            }
+        }	// end of while imgCnt < numofimages loop 
+
+        // End acquisition
+        pCam->EndAcquisition();
+        cout << "Done. " << endl;
+    }
+    catch (Spinnaker::Exception &e)
+    {
+        cout << "Error: " << e.what() << endl;
+        result = -1;
+    }
+
+    return result;
+}
+
 ////////////////////////////////////////////
 
 inline void normalizerows(Mat& src, Mat& dst, double lowerlim, double upperlim)
@@ -700,7 +803,7 @@ int main(int argc, char *argv[])
 
 	bool doneflag = 0, skeypressed = 0, bkeypressed = 0, pkeypressed = 0;
 	bool jlockin = 0, jkeypressed = 0, ckeypressed = 0;
-	bool kkeypressed = 0, tkeypressed = 0;
+	bool kkeypressed = 0, tkeypressed = 0, alttkeypressed = 0;
 	Mat jmask, jmaskt;
 	double lambdamin, lambdamax;
 	lambdamin = 816e-9;
@@ -1475,6 +1578,7 @@ int main(int argc, char *argv[])
 			ImagePtr convertedImage;
 			// trying begin and end acq, to see if it will improve fps
 			// this needs StreamBufferHandlingMode -> NewestOnly
+			ResetTrigger(pCam);
 			pCam->BeginAcquisition();
 			//////////////////
 
@@ -1568,6 +1672,18 @@ int main(int argc, char *argv[])
 				// using DFT_ROWS
 				// But that has rolling shutter issues, so going back to rows
 				
+				if (alttkeypressed == 1)
+				{
+					// do triggered capture, alternating signal & J0 frames
+					timgcount++;
+					pCam->EndAcquisition();
+					ConfigureTrigger(pCam);
+					AcquireImagesAlt(pCam, manualaverages, dirname, timgcount);
+					ResetTrigger(pCam);
+					pCam->BeginAcquisition();
+					alttkeypressed = 0;
+				}
+				
 				if (tkeypressed == 1)
 				{
 					// do triggered capture
@@ -1579,6 +1695,8 @@ int main(int argc, char *argv[])
 					pCam->BeginAcquisition();
 					tkeypressed = 0;
 				}
+				
+				
 				
 				if (kkeypressed == 1)
 				{
@@ -2198,6 +2316,12 @@ int main(int argc, char *argv[])
 				case 'T':
 
 					tkeypressed = 1;
+					break;
+					
+				case '\\':
+				case '|':
+
+					alttkeypressed = 1;
 					break;
 
 				case 'c':
