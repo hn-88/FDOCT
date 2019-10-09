@@ -1480,6 +1480,7 @@ int main(int argc, char *argv[])
 			ImagePtr convertedImage;
 			// trying begin and end acq, to see if it will improve fps
 			// this needs StreamBufferHandlingMode -> NewestOnly
+			ResetTrigger(pCam); // added this, in case cam is in trig mode
 			pCam->BeginAcquisition();
 			//////////////////
 
