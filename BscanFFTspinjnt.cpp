@@ -324,7 +324,7 @@ int AcquireImages(CameraPtr pCam, int numofimages, char * dirname, char type, in
             }
 
 			// Release image
-			pResultImage[imageCnt]->Release();
+			//pResultImage[imageCnt]->Release();
                 
 
             
@@ -1577,11 +1577,9 @@ int main(int argc, char *argv[])
 				{
 					// do triggered capture
 					timgcount++;
-					pCam->EndAcquisition();
-					ConfigureTrigger(pCam);
+					
 					AcquireImages(pCam, manualaverages, dirname, 't', timgcount);
-					ResetTrigger(pCam);
-					pCam->BeginAcquisition();
+					
 					tkeypressed = 0;
 				}
 				
@@ -1589,11 +1587,9 @@ int main(int argc, char *argv[])
 				{
 					// do triggered capture of J0 frame
 					kimgcount++;
-					pCam->EndAcquisition();
-					ConfigureTrigger(pCam);
+					
 					AcquireImages(pCam, manualaverages, dirname, 'k', kimgcount);
-					ResetTrigger(pCam);
-					pCam->BeginAcquisition();
+					
 					kkeypressed = 0;
 				}
 					
@@ -2105,7 +2101,7 @@ int main(int argc, char *argv[])
 				key = waitKey(3); // wait 30 milliseconds for keypress
 								  // max frame rate at 1280x960 is 30 fps => 33 milliseconds
 								  
-				bool expchanged = 0;
+				bool expchanged = 0, gainchanged = 0;
 				pid_t pid;
 				
 
@@ -2116,6 +2112,24 @@ int main(int argc, char *argv[])
 				case 'x':
 				case 'X':
 					doneflag = 1;
+					break;
+					
+				case '1':
+				case '!':
+
+					camgain = camgain + 1;
+					gainchanged = 1;
+					
+					break;
+					
+				case '2':
+				case '@':
+
+					camgain = camgain - 1;
+					if (camgain < 0)
+						camgain = 0;
+					gainchanged = 1;
+					
 					break;
 
 				case '+':
@@ -2213,7 +2227,7 @@ int main(int argc, char *argv[])
 					
 				case 'y':
 				case 'Y':
-
+#ifdef __unix__
 					//std::system(offlinetoolpath); 
 					// - this causes the BscanFFT program to wait for the offline tool to finish
 					pid = fork();
@@ -2236,6 +2250,7 @@ int main(int argc, char *argv[])
 						printf("fork() failed!\n");
 						return 1;
 					}
+#endif
 					
 					break;
 
@@ -2425,6 +2440,42 @@ int main(int argc, char *argv[])
 						goto failure;
 					}
 				}
+				
+				if (gainchanged == 1)
+				{
+				//Set gain with QuickSpin
+					ret = 0;
+					if (IsReadable(pCam->Gain) && IsWritable(pCam->Gain))
+					{
+						//pCam->Gain.SetValue(pCam->Gain.GetMin());
+						pCam->Gain.SetValue(camgain);
+						ret = 1;
+						cout << "Gain set to " << pCam->Gain.GetValue() << " dB ..." << endl;
+					}
+					else
+					{
+						cout << "Gain not available..." << endl;
+						ret = -1;
+					}
+					// Gain is in dB
+					if (ret == 1)
+					{
+						sprintf(textbuffer, "Gain = %d ", camgain);
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
+
+					}
+					else
+					{
+						sprintf(textbuffer, "CONTROL_GAIN failed");
+						secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+						putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+						imshow("Status", statusimg);
+						goto failure;
+					}
+				}
+				
 
 				if (doneflag == 1)
 				{
