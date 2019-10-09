@@ -260,7 +260,13 @@ int AcquireImages(CameraPtr pCam, int numofimages, char * dirname, char type, in
         // Retrieve, convert, and save images
         
         unsigned int imageCnt = 0;
+#ifdef __unix__
         ImagePtr pResultImage[numofimages];
+#endif
+#ifdef _WIN64
+		ImagePtr pResultImage[500];
+#endif
+        
 
         while( imageCnt < numofimages)
         {
@@ -2103,7 +2109,9 @@ int main(int argc, char *argv[])
 								  // max frame rate at 1280x960 is 30 fps => 33 milliseconds
 								  
 				bool expchanged = 0, gainchanged = 0;
+#ifdef __unix__
 				pid_t pid;
+#endif
 				
 
 				switch (key)
