@@ -2219,7 +2219,9 @@ int main(int argc, char *argv[])
 								  // max frame rate at 1280x960 is 30 fps => 33 milliseconds
 								  
 				bool expchanged = 0;
+#ifdef __unix__
 				pid_t pid;
+#endif
 				
 
 				switch (key)
@@ -2332,7 +2334,7 @@ int main(int argc, char *argv[])
 					
 				case 'y':
 				case 'Y':
-
+#ifdef __unix__
 					//std::system(offlinetoolpath); 
 					// - this causes the BscanFFT program to wait for the offline tool to finish
 					pid = fork();
@@ -2355,6 +2357,7 @@ int main(int argc, char *argv[])
 						printf("fork() failed!\n");
 						return 1;
 					}
+#endif
 					
 					break;
 
