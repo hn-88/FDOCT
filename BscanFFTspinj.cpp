@@ -3,7 +3,7 @@
 #include "windows.h"
 // anything before a precompiled header is ignored, 
 // so no endif here! add #endif to compile on __unix__ !
-#endif
+//#endif
 #ifdef _WIN64
 //#include <qhyccd.h>
 #endif
@@ -2485,6 +2485,46 @@ int main(int argc, char *argv[])
 					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 					imshow("Status", statusimg);
 					break;
+
+
+				case '3':
+
+					averagestoggle += 1;
+					sprintf(textbuffer, "Now averaging %d bscans.", averagestoggle);
+					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);
+					break;
+
+				case '#':
+
+					averagestoggle += 10;
+					sprintf(textbuffer, "Now averaging %d bscans.", averagestoggle);
+					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);
+					break;
+
+				case '4':
+					if (averagestoggle>1)
+						averagestoggle -= 1;
+					sprintf(textbuffer, "Now averaging %d bscans.", averagestoggle);
+					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);
+					break;
+
+				case '$':
+					if (averagestoggle > 10)
+						averagestoggle -= 10;
+					else
+						averagestoggle = 1;
+					sprintf(textbuffer, "Now averaging %d bscans.", averagestoggle);
+					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
+					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
+					imshow("Status", statusimg);
+					break;
+
 
 				case 'e':
 				case 'E':
