@@ -3,7 +3,7 @@
 #include "windows.h"
 // anything before a precompiled header is ignored, 
 // so no endif here! add #endif to compile on __unix__ !
-//#endif
+#endif
 #ifdef _WIN64
 //#include <qhyccd.h>
 #endif
@@ -44,6 +44,14 @@
 * [ key decreases thresholding in final Bscan
 * 9 or ( key decreases the index of the reported ascan max value
 * 0 or ) key increases the index of the reported ascan max value
+* 
+* 
+* 1 increases gain
+* 2 decreases gain
+* 3 increases number of averages by 1
+* # (SHIFT+3) increases number of averages by 10
+* 4 decreases number of averages by 1
+* $ (SHIFT+4) decreases number of averages by 10
 *
 * w decreases width of ROI for which avg val is reported, W increases width
 * h decreases the height (position), H increases
