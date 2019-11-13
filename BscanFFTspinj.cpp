@@ -2230,6 +2230,18 @@ int main(int argc, char *argv[])
 #ifdef __unix__
 				pid_t pid;
 #endif
+#ifdef _WIN64
+			// https://stackoverflow.com/questions/15435994/how-do-i-open-an-exe-from-another-c-exe
+			// additional information to start process
+			   STARTUPINFO si;     
+			   PROCESS_INFORMATION pi;
+
+			   // set the size of the structures
+			   ZeroMemory( &si, sizeof(si) );
+			   si.cb = sizeof(si);
+			   ZeroMemory( &pi, sizeof(pi) );
+			   LPCSTR lpApplicationName = offlinetoolpath;
+#endif
 				
 
 				switch (key)
@@ -2342,6 +2354,36 @@ int main(int argc, char *argv[])
 					
 				case 'y':
 				case 'Y':
+#ifdef _WIN64
+					// should not use system() due to security concerns
+					// https://stackoverflow.com/questions/15435994/how-do-i-open-an-exe-from-another-c-exe
+			
+
+				  // start the program up
+				  // https://faq.cprogramming.com/cgi-bin/smartfaq.cgi?answer=1044654269&id=1043284392
+				  BOOL bRet = CreateProcess( lpApplicationName,   // the path
+					newargv[1],        // Command line
+					NULL,           // Process handle not inheritable
+					NULL,           // Thread handle not inheritable
+					FALSE,          // Set handle inheritance to FALSE
+					0,              // No creation flags
+					NULL,           // Use parent's environment block
+					NULL,           // Use parent's starting directory 
+					&si,            // Pointer to STARTUPINFO structure
+					&pi             // Pointer to PROCESS_INFORMATION structure (removed extra parentheses)
+					);
+					// Close process and thread handles. 
+					
+					if (bRet == FALSE)
+					{
+						MessageBox(HWND_DESKTOP,"Unable to start program","",MB_OK);
+						return 1;
+					}
+					CloseHandle( pi.hProcess );
+					CloseHandle( pi.hThread );
+					
+#endif	
+		
 #ifdef __unix__
 					//std::system(offlinetoolpath); 
 					// - this causes the BscanFFT program to wait for the offline tool to finish
