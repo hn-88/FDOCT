@@ -99,7 +99,8 @@ int main(int argc, char *argv[])
 	uint  indextemp;
 	
 	int camtime = 1, camgain = 1, camspeed = 1, cambinx = 2, cambiny = 2, usbtraffic = 10;
-	int camgamma = 1, binvalue = 1, normfactor = 1, normfactorforsave = 25;
+	int binvalue = 1, normfactor = 1, normfactorforsave = 25;
+	double camgamma = 1.0;
 	
 	bool doneflag = 0, skeypressed = 0;
 	
@@ -124,6 +125,7 @@ int main(int argc, char *argv[])
 	char filename[20];
 	char filenamec[20];
 	char pathname[140];
+	char gammastr[40];
 	char lambdamaxstr[40];
 	char lambdaminstr[40];
 	struct tm *timenow;
@@ -139,6 +141,8 @@ int main(int argc, char *argv[])
 		infile >> tempstring;
 		// first three lines of ini file are comments
 		infile >> camgain;
+		infile >> tempstring;
+		infile >> gammastr;
 		infile >> tempstring;
 		infile >> camtime;
 		infile >> tempstring;
@@ -164,6 +168,8 @@ int main(int argc, char *argv[])
 		infile >> tempstring;
 		infile >> dirdescr;
 		infile.close();
+		
+		camgamma = atof(gammastr);
 
 		
 	}
