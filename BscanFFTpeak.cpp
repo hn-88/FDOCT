@@ -689,7 +689,7 @@ inline void printPeakHoldAscan(Mat bscandb, uint ascanat, int numdisplaypoints, 
 				fourthrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 				putText(statusimg, textbuffer, Point(0, 180), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 
-				dBdiff14 = max4val - max4val;
+				dBdiff14 = max1val - max4val;
 				dBdiff43 = max4val - max3val;
 				dBdiff14vals = max1vals - max4vals;
 
@@ -1672,6 +1672,7 @@ int main(int argc, char *argv[])
 								data_yb = data_yb / averagestoggle;
 							bkeypressed = 0;
 							baccumcount = 0;
+							baccum = Mat::zeros(Size(opw, oph), CV_64F);
 
 						}
 					} // end if not saveinterferograms
@@ -1680,7 +1681,6 @@ int main(int argc, char *argv[])
 					secrowofstatusimg = Mat::zeros(cv::Size(600, 50), CV_64F);
 					putText(statusimg, textbuffer, Point(0, 80), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 3, 1);
 					imshow("Status", statusimg);
-					resizeWindow("Status", 600, 300);
 
 					if (manualaveraging)
 					{
