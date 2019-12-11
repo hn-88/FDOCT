@@ -3,7 +3,7 @@
 #include "windows.h"
 // anything before a precompiled header is ignored, 
 // so no endif here! add #endif to compile on __unix__ !
-//#endif
+#endif
 #ifdef _WIN64
 //#include <qhyccd.h>
 #endif
@@ -1200,6 +1200,7 @@ int main(int argc, char *argv[])
 								data_yb = data_yb / averagestoggle;
 							bkeypressed = 0;
 							baccumcount = 0;
+							baccum = Mat::zeros(Size(opw, oph), CV_64F);
 
 						}
 					} // end if not saveinterferograms

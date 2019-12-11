@@ -1662,6 +1662,7 @@ int main(int argc, char *argv[])
 								data_yb = data_yb / averagestoggle;
 							bkeypressed = 0;
 							baccumcount = 0;
+							baccum = Mat::zeros(Size(opw, oph), CV_64F);
 
 						}
 					} // end if not saveinterferograms
