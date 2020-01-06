@@ -298,6 +298,7 @@ int AcquireImages(CameraPtr pCam, int numofimages, char * dirname, char type, in
 				result = -1;
 			}
 		}
+		cout << "Done capturing. " << endl;
 
 		// now the save loop
 		imageCnt = 0;
@@ -338,7 +339,7 @@ int AcquireImages(CameraPtr pCam, int numofimages, char * dirname, char type, in
 		}	// end of while imgCnt < numofimages loop 
 
 			// End acquisition
-		cout << "Done. " << endl;
+		cout << "Done saving. " << endl;
 	}
 	catch (Spinnaker::Exception &e)
 	{
