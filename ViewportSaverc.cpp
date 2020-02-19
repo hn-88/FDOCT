@@ -98,12 +98,12 @@ int main(int argc, char *argv[])
 	char id[32];
 	//char camtype[16];
 	int found = 0;
-	unsigned int w, h, bpp = 8, channels, cambitdepth = 16;
+	unsigned int w, h, bpp = 8, channels = 3, cambitdepth = 16;
 	unsigned int offsetx = 0, offsety = 0;
 	unsigned int indexi, manualindexi, averages = 1, opw, oph;
 	uint  indextemp;
 	
-	int camtime = 1, camgain = 1, camspeed = 1, cambinx = 2, cambiny = 2, usbtraffic = 10;
+	int camtime = 1, camgain = 1, camspeed = 1, cambinx = 1, cambiny = 1, usbtraffic = 10;
 	int binvalue = 1, normfactor = 1, normfactorforsave = 25;
 	double camgamma = 1.0;
 	
@@ -177,7 +177,11 @@ int main(int argc, char *argv[])
 		camgamma = atof(gammastr);
 	}
 
-	else std::cout << "Unable to open ini file, using defaults.";
+	else std::cout << "Unable to open ini file, using defaults." << std::endl;
+	
+	std::cout << "Binning has to be disabled for colour..." << std::endl;
+	
+	binvalue = 1;
 
 	namedWindow("show", 0); // 0 = WINDOW_NORMAL
 	moveWindow("show", 0, 0);
