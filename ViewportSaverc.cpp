@@ -370,13 +370,13 @@ int main(int argc, char *argv[])
 		if (cambitdepth == 8)
 		{
 
-			m = Mat::zeros(cv::Size(w, h), CV_8U);
-			mraw = Mat::zeros(cv::Size(w, h), CV_8U);
+			m = Mat::zeros(cv::Size(w, h), CV_8UC3);
+			mraw = Mat::zeros(cv::Size(w, h), CV_8UC3);
 		}
 		else // is 16 bit
 		{
-			m = Mat::zeros(cv::Size(w, h), CV_16U);
-			mraw = Mat::zeros(cv::Size(w, h), CV_16U);
+			m = Mat::zeros(cv::Size(w, h), CV_16UC3);
+			mraw = Mat::zeros(cv::Size(w, h), CV_16UC3);
 		}
 
 
