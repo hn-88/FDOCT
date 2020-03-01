@@ -1,10 +1,13 @@
-#ifdef _WIN64
-#include "stdafx.h"
-#include "windows.h"
+//#ifdef _WIN64
+//#include "stdafx.h"
+// VS2015 says stdafx.h not found, so remove it.
+// Then we can put the windows.h in the block below. 
+//#include "windows.h"
 // anything before a precompiled header is ignored, 
 // so no endif here! add #endif to compile on __unix__ !
-#endif
+//#endif
 #ifdef _WIN64
+#include "windows.h"
 #include <qhyccd.h>
 #endif
 
@@ -98,7 +101,7 @@ int main(int argc, char *argv[])
 	char id[32];
 	//char camtype[16];
 	int found = 0;
-	unsigned int w, h, bpp = 8, channels = 3, cambitdepth = 16;
+	unsigned int w, h, bpp = 8, channels = 3, cambitdepth = 8;
 	unsigned int offsetx = 0, offsety = 0;
 	unsigned int indexi, manualindexi, averages = 1, opw, oph;
 	uint  indextemp;
@@ -106,6 +109,8 @@ int main(int argc, char *argv[])
 	int camtime = 1, camgain = 1, camspeed = 1, cambinx = 1, cambiny = 1, usbtraffic = 10;
 	int binvalue = 1, normfactor = 1, normfactorforsave = 25;
 	double camgamma = 1.0;
+	
+	int WhiteBalanceR = 20, WhiteBalanceG = 15, WhiteBalanceB = 20;
 	
 	bool doneflag = 0, skeypressed = 0;
 	
@@ -115,7 +120,7 @@ int main(int argc, char *argv[])
 	int  fps, key;
 	int t_start, t_end;
 
-	std::ifstream infile("ViewportSaver.ini");
+	std::ifstream infile("ViewportSaverc.ini");
 	std::string tempstring;
 	char dirdescr[60];
 	sprintf(dirdescr, "_");
@@ -172,6 +177,12 @@ int main(int argc, char *argv[])
 		infile >> binvalue;
 		infile >> tempstring;
 		infile >> dirdescr;
+		infile >> tempstring;
+		infile >> WhiteBalanceR;
+		infile >> tempstring;
+		infile >> WhiteBalanceG;
+		infile >> tempstring;
+		infile >> WhiteBalanceB;
 		infile.close();
 
 		camgamma = atof(gammastr);
@@ -179,9 +190,9 @@ int main(int argc, char *argv[])
 
 	else std::cout << "Unable to open ini file, using defaults." << std::endl;
 	
-	std::cout << "Binning has to be disabled for colour..." << std::endl;
+	std::cout << "Camera binning has to be disabled for colour..." << std::endl;
 	
-	binvalue = 1;
+	//cambinx = 1; cambiny = 1;
 
 	namedWindow("show", 0); // 0 = WINDOW_NORMAL
 	moveWindow("show", 0, 0);
@@ -285,9 +296,18 @@ int main(int argc, char *argv[])
 			printf("Init QHYCCD fail code:%d\n", ret);
 			goto failure;
 		}
-
-
-
+		
+		ret = IsQHYCCDControlAvailable(camhandle,CAM_COLOR);
+        if(ret == BAYER_GB || ret == BAYER_GR || ret == BAYER_BG || ret == BAYER_RG)
+        {
+            //printf("This is a Color Cam\n");
+            SetQHYCCDDebayerOnOff(camhandle,true);
+            SetQHYCCDParam(camhandle,CONTROL_WBR,WhiteBalanceR);
+            SetQHYCCDParam(camhandle,CONTROL_WBG,WhiteBalanceG);
+            SetQHYCCDParam(camhandle,CONTROL_WBB,WhiteBalanceB);
+        }
+        else  printf("This is not a colour Camera! Use ViewportSaver instead of ViewportSaverc.\n");
+        
 		ret = IsQHYCCDControlAvailable(camhandle, CONTROL_TRANSFERBIT);
 		if (ret == QHYCCD_SUCCESS)
 		{
