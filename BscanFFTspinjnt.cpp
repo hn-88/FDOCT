@@ -63,6 +63,8 @@
 *
 * Hari Nandakumar
 * 20 Sep 2019  *
+* option to bin multiple A-scans
+* 4 Mar 2020
 *
 *
 */
@@ -701,7 +703,7 @@ int main(int argc, char *argv[])
 
 
 	int camtime = 1, camgain = 1, camspeed = 1, cambinx = 2, cambiny = 2, usbtraffic = 10;
-	int camgamma = 1, binvalue = 1, normfactor = 1, normfactorforsave = 25;
+	int camgamma = 1, binvaluex = 1, binvaluey = 1, normfactor = 1, normfactorforsave = 25;
 	int numfftpoints = 1024;
 	int numdisplaypoints = 512;
 	bool saveframes = 0;
@@ -730,7 +732,7 @@ int main(int argc, char *argv[])
 	int  fps, key;
 	int t_start, t_end;
 
-	std::ifstream infile("BscanFFTspinj.ini");
+	std::ifstream infile("BscanFFTspinjnt.ini");
 	std::string tempstring;
 	char dirdescr[60];
 	sprintf(dirdescr, "_");
@@ -785,7 +787,9 @@ int main(int argc, char *argv[])
 		infile >> tempstring;
 		infile >> usbtraffic;
 		infile >> tempstring;
-		infile >> binvalue;
+		infile >> binvaluex;
+		infile >> tempstring;
+		infile >> binvaluey;
 		infile >> tempstring;
 		infile >> dirdescr;
 		infile >> tempstring;
@@ -855,8 +859,8 @@ int main(int argc, char *argv[])
 	// init camera, variables, etc
 
 	cambitdepth = bpp;
-	opw = w / binvalue;
-	oph = h / binvalue;
+	opw = w / binvaluex;
+	oph = h / binvaluey;
 	float lambda0 = (lambdamin + lambdamax) / 2;
 	float lambdabw = lambdamax - lambdamin;
 
@@ -1539,7 +1543,7 @@ int main(int argc, char *argv[])
 				else
 					mraw.copyTo(m);
 
-				resize(m, opm, Size(), 1.0 / binvalue, 1.0 / binvalue, INTER_AREA);	// binning (averaging)
+				resize(m, opm, Size(), 1.0 / binvaluex, 1.0 / binvaluey, INTER_AREA);	// binning (averaging)
 																					// opencv seems to automatically display CV_16U correctly
 				imshow("show", opm);
 
@@ -2598,7 +2602,7 @@ int main(int argc, char *argv[])
 	}
 
 #ifdef __unix__
-	outfile << "% Parameters were - camgain, camtime, bpp, w , h , camspeed, usbtraffic, binvalue, bscanthreshold" << std::endl;
+	outfile << "% Parameters were - camgain, camtime, bpp, w , h , camspeed, usbtraffic, binvaluex, binvaluey, bscanthreshold" << std::endl;
 	outfile << "% " << camgain;
 	outfile << ", " << camtime;
 	outfile << ", " << bpp;
@@ -2606,7 +2610,8 @@ int main(int argc, char *argv[])
 	outfile << ", " << h;
 	outfile << ", " << camspeed;
 	outfile << ", " << usbtraffic;
-	outfile << ", " << binvalue;
+	outfile << ", " << binvaluex;
+	outfile << ", " << binvaluey;
 	outfile << ", " << int(bscanthreshold);
 
 
