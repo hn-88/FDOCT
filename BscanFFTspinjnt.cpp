@@ -704,6 +704,7 @@ int main(int argc, char *argv[])
 
 	int camtime = 1, camgain = 1, camspeed = 1, cambinx = 2, cambiny = 2, usbtraffic = 10;
 	int camgamma = 1, binvaluex = 1, binvaluey = 1, normfactor = 1, normfactorforsave = 25;
+	int bscanbinx = 1, bscanbiny = 1;
 	int numfftpoints = 1024;
 	int numdisplaypoints = 512;
 	bool saveframes = 0;
@@ -790,6 +791,10 @@ int main(int argc, char *argv[])
 		infile >> binvaluex;
 		infile >> tempstring;
 		infile >> binvaluey;
+		infile >> tempstring;
+		infile >> bscanbinx;
+		infile >> tempstring;
+		infile >> bscanbiny;
 		infile >> tempstring;
 		infile >> dirdescr;
 		infile >> tempstring;
@@ -902,6 +907,7 @@ int main(int argc, char *argv[])
 	int timgcount = 0, kimgcount = 0;
 
 	Mat m, opm, opmvector, bscan, bscanlog, bscandb, bscandisp, bscandispmanual, bscantemp, bscantemp2, bscantemp3, bscantransposed, chan[3];
+	Mat bscanbinned;
 	Mat tempmat;
 	Mat bscandispj;
 	Mat mraw;
@@ -1845,7 +1851,11 @@ int main(int argc, char *argv[])
 						positivediff += 0.001;			// to avoid log(0)
 
 					}
-
+					
+					if(bscanbinx > 1 || bscanbiny > 1)
+					{
+						// binning code
+					}
 
 					log(bscan, bscanlog);					// switch to logarithmic scale
 															//convert to dB = 20 log10(value), from the natural log above
@@ -1872,6 +1882,10 @@ int main(int argc, char *argv[])
 					if (jlockin)
 					{
 						// code to display and save subtracted frame
+						if(bscanbinx > 1 || bscanbiny > 1)
+						{
+							// binning code
+						}
 						log(positivediff, bscansublog);
 						bscandispmanual = 20.0 * bscansublog / 2.303;
 
@@ -1985,6 +1999,11 @@ int main(int argc, char *argv[])
 								else
 									transpose(bscansave0[ii], bscantemp2);
 								bscantemp2 += Scalar::all(0.000001);   	// to prevent log of 0                 
+								
+								if(bscanbinx > 1 || bscanbiny > 1)
+								{
+									// binning code
+								}
 								log(bscantemp2, bscantemp2);					// switch to logarithmic scale
 																				//convert to dB = 20 log10(value), from the natural log above
 								bscantemp2 = 20.0 * bscantemp2 / 2.303;
@@ -2076,7 +2095,10 @@ int main(int argc, char *argv[])
 
 										bscantemp3.convertTo(bscantemp3, CV_64F);
 										bscantemp3 += Scalar::all(0.000001);   	// to prevent log of 0       
-
+										if(bscanbinx > 1 || bscanbiny > 1)
+										{
+											// binning code
+										}
 										log(bscantemp3, bscantemp3);					// switch to logarithmic scale
 																						//convert to dB = 20 log10(value), from the natural log above
 										bscantemp3 = 20.0 * bscantemp3 / 2.303;
@@ -2602,7 +2624,7 @@ int main(int argc, char *argv[])
 	}
 
 #ifdef __unix__
-	outfile << "% Parameters were - camgain, camtime, bpp, w , h , camspeed, usbtraffic, binvaluex, binvaluey, bscanthreshold" << std::endl;
+	outfile << "% Parameters were - camgain, camtime, bpp, w , h , camspeed, usbtraffic, binvaluex, binvaluey, bscanbinx, bscanbiny, bscanthreshold" << std::endl;
 	outfile << "% " << camgain;
 	outfile << ", " << camtime;
 	outfile << ", " << bpp;
@@ -2612,6 +2634,8 @@ int main(int argc, char *argv[])
 	outfile << ", " << usbtraffic;
 	outfile << ", " << binvaluex;
 	outfile << ", " << binvaluey;
+	outfile << ", " << bscanbinx;
+	outfile << ", " << bscanbiny;
 	outfile << ", " << int(bscanthreshold);
 
 
