@@ -35,6 +35,10 @@ File list:
 	
 	BscanFFTspin.cpp      - the main software, with spinnaker SDK (Point Grey camera, flir.com) support
 	
+	BscanFFTspinj.cpp     - the main software, with spinnaker SDK and offline capture code with triggered capture
+	
+	BscanFFTspinjnt.cpp   - the main software, with spinnaker SDK and offline capture code, non-triggered capture
+	
 	BscanFFTwebcam.cpp   - webcam demo version of the main software, which does not need a QHYCCD camera
 	
 	BscanFFTxml2m.cpp    - helper to convert output xml files to Matlab compatible m files
