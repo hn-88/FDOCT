@@ -39,7 +39,7 @@
 * U key increases exposure time by 10 ms
 * D key decreases exposure time by 10 ms
 * A key toggles averaging
-* Q key toggles clamping upper bound of displayed Bscan to 50 dB
+* Q key toggles clamping upper bound of displayed Bscan to 50 dB/30dB
 * ] key increases thresholding in final Bscan
 * [ key decreases thresholding in final Bscan
 * 9 or ( key decreases the index of the reported ascan max value
@@ -704,7 +704,7 @@ int main(int argc, char *argv[])
 
 	int camtime = 1, camgain = 1, camspeed = 1, cambinx = 2, cambiny = 2, usbtraffic = 10;
 	int camgamma = 1, binvaluex = 1, binvaluey = 1, normfactor = 1, normfactorforsave = 25;
-	int bscanbinx = 1, bscanbiny = 1;
+	int bscanbinx = 1, bscanbiny = 1, multiplyfactor;
 	int numfftpoints = 1024;
 	int numdisplaypoints = 512;
 	bool saveframes = 0;
@@ -832,6 +832,7 @@ int main(int argc, char *argv[])
 		lambdamin = atof(lambdaminstr);
 		lambdamax = atof(lambdamaxstr);
 		averagestoggle = averages;
+		multiplyfactor = bscanbinx * bscanbiny * binvaluex * binvaluey;
 	}
 
 	else std::cout << "Unable to open ini file, using defaults.";
@@ -1855,6 +1856,9 @@ int main(int argc, char *argv[])
 					if(bscanbinx > 1 || bscanbiny > 1)
 					{
 						// binning code
+						resize(bscan, bscanbinned, Size(), 1.0 / bscanbinx, 1.0 / bscanbiny, INTER_AREA);
+						resize(multiplyfactor*bscanbinned, bscan, Size(), bscanbinx*binvaluey, bscanbiny, INTER_CUBIC);
+						// the second resize brings the size back to the unbinned size
 					}
 
 					log(bscan, bscanlog);					// switch to logarithmic scale
@@ -1872,9 +1876,9 @@ int main(int argc, char *argv[])
 					bscandisp = max(bscandisp, bscanthreshold);
 					if (clampupper)
 					{
-						// if this option is selected, set the left upper pixel to 50 dB
+						// if this option is selected, set the left upper pixel to 50 dB/30dB
 						// before normalizing
-						bscandisp.at<double>(5, 5) = 50.0;
+						bscandisp.at<double>(5, 5) = 30.0;
 					}
 					normalize(bscandisp, bscandisp, 0, 1, NORM_MINMAX);	// normalize the log plot for display
 					bscandisp.convertTo(bscandisp, CV_8UC1, 255.0);
@@ -1885,6 +1889,10 @@ int main(int argc, char *argv[])
 						if(bscanbinx > 1 || bscanbiny > 1)
 						{
 							// binning code
+							resize(positivediff, bscanbinned, Size(), 1.0 / bscanbinx, 1.0 / bscanbiny, INTER_AREA);
+							resize(multiplyfactor*bscanbinned, positivediff, Size(), bscanbinx*binvaluey, bscanbiny, INTER_CUBIC);
+							// the second resize brings the size back to the unbinned size
+					
 						}
 						log(positivediff, bscansublog);
 						bscandispmanual = 20.0 * bscansublog / 2.303;
@@ -2003,6 +2011,10 @@ int main(int argc, char *argv[])
 								if(bscanbinx > 1 || bscanbiny > 1)
 								{
 									// binning code
+									resize(bscantemp2, bscanbinned, Size(), 1.0 / bscanbinx, 1.0 / bscanbiny, INTER_AREA);
+									resize(multiplyfactor*bscanbinned, bscantemp2, Size(), bscanbinx*binvaluey, bscanbiny, INTER_CUBIC);
+									// the second resize brings the size back to the unbinned size
+									
 								}
 								log(bscantemp2, bscantemp2);					// switch to logarithmic scale
 																				//convert to dB = 20 log10(value), from the natural log above
@@ -2098,6 +2110,10 @@ int main(int argc, char *argv[])
 										if(bscanbinx > 1 || bscanbiny > 1)
 										{
 											// binning code
+											resize(bscantemp3, bscanbinned, Size(), 1.0 / bscanbinx, 1.0 / bscanbiny, INTER_AREA);
+											resize(multiplyfactor*bscanbinned, bscantemp3, Size(), bscanbinx*binvaluey, bscanbiny, INTER_CUBIC);
+											// the second resize brings the size back to the unbinned size
+									
 										}
 										log(bscantemp3, bscantemp3);					// switch to logarithmic scale
 																						//convert to dB = 20 log10(value), from the natural log above
