@@ -1,0 +1,27 @@
+* + (or =) key increases exposure time by 0.1 ms
+* - (or _) key decreases exposure time by 0.1 ms
+* u key increases exposure time by 1 ms
+* d key decreases exposure time by 1 ms
+* U key increases exposure time by 10 ms
+* D key decreases exposure time by 10 ms
+* A key toggles averaging
+* Q key toggles clamping upper bound of displayed Bscan to 50 dB/30dB
+* ] key increases thresholding in final Bscan
+* [ key decreases thresholding in final Bscan
+* 9 or ( key decreases the index of the reported ascan max value
+* 0 or ) key increases the index of the reported ascan max value
+*  
+* 1 increases gain
+* 2 decreases gain
+* 3 increases number of averages by 1
+* # (SHIFT+3) increases number of averages by 10
+* 4 decreases number of averages by 1
+* $ (SHIFT+4) decreases number of averages by 10
+*
+* w decreases width of ROI for which avg val is reported, W increases width
+* h decreases the height (position), H increases
+* location of ROI is to the right of the index of reported ascan
+* e toggles rEporting/plotting of ROI average intensity
+*
+* ESC, x or X key quits
+*

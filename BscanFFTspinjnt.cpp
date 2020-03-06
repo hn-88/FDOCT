@@ -1860,6 +1860,11 @@ int main(int argc, char *argv[])
 						resize(multiplyfactor*bscanbinned, bscan, Size(), bscanbinx*binvaluey, bscanbiny, INTER_CUBIC);
 						// the second resize brings the size back to the unbinned size
 					}
+					else if (binvaluex > 1 || binvaluey > 1)
+					{
+						resize(multiplyfactor*bscanbinned, bscan, Size(), bscanbinx*binvaluey, bscanbiny, INTER_CUBIC);
+						// the second resize brings the size back to the unbinned size
+					}
 
 					log(bscan, bscanlog);					// switch to logarithmic scale
 															//convert to dB = 20 log10(value), from the natural log above
@@ -2395,7 +2400,7 @@ int main(int argc, char *argv[])
 					break;
 
 				case ')':
-					if (ascanat < (oph - 11))
+					if (ascanat < (bscandb.cols - 11))
 						ascanat += 10;
 
 					sprintf(textbuffer, "ascanat = %d", ascanat);
@@ -2406,7 +2411,7 @@ int main(int argc, char *argv[])
 						printMinMaxAscan(bscandb, ascanat, numdisplaypoints, statusimg);
 					break;
 				case '0':
-					if (ascanat < (oph - 1))
+					if (ascanat < (bscandb.cols - 1))
 						ascanat += 1;
 
 					sprintf(textbuffer, "ascanat = %d", ascanat);
@@ -2418,7 +2423,7 @@ int main(int argc, char *argv[])
 					break;
 
 				case 'W':
-					if ((ascanat + widthROI) < (oph - 1))
+					if ((ascanat + widthROI) < (bscandb.cols -1))
 						widthROI += 1;
 
 					sprintf(textbuffer, "ROI width = %d", widthROI);
