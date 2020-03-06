@@ -1853,18 +1853,18 @@ int main(int argc, char *argv[])
 
 					}
 					
-					if(bscanbinx > 1 || bscanbiny > 1)
+					if(bscanbinx > 1 || bscanbiny > 1 || binvaluex > 1 || binvaluey > 1)
 					{
 						// binning code
 						resize(bscan, bscanbinned, Size(), 1.0 / bscanbinx, 1.0 / bscanbiny, INTER_AREA);
 						resize(multiplyfactor*bscanbinned, bscan, Size(), bscanbinx*binvaluey, bscanbiny, INTER_CUBIC);
 						// the second resize brings the size back to the unbinned size
 					}
-					else if (binvaluex > 1 || binvaluey > 1)
-					{
-						resize(multiplyfactor*bscanbinned, bscan, Size(), bscanbinx*binvaluey, bscanbiny, INTER_CUBIC);
-						// the second resize brings the size back to the unbinned size
-					}
+					//else if (binvaluex > 1 || binvaluey > 1)
+					//{
+						//resize(multiplyfactor*bscanbinned, bscan, Size(), bscanbinx*binvaluey, bscanbiny, INTER_CUBIC);
+						// this causes a crash
+					//}
 
 					log(bscan, bscanlog);					// switch to logarithmic scale
 															//convert to dB = 20 log10(value), from the natural log above
